@@ -1,0 +1,34 @@
+# 本機環境與產物
+.venv/
+__pycache__/
+*.py[cod]
+*.bak
+*.bak_*
+output/
+Thumbs.db
+Desktop.ini
+
+# data 不進版控，只留角色清單與女／男各 5 段基本參考音。
+# 草稿、動作參考片、角色專用音檔、快取都留在本機。
+data/*
+!data/characters.json
+!data/sounds/
+
+data/sounds/*
+!data/sounds/voices.json
+!data/sounds/female/
+!data/sounds/male/
+
+data/sounds/female/*
+data/sounds/male/*
+
+!data/sounds/female/f1_sweet.mp3
+!data/sounds/female/f2_young.mp3
+!data/sounds/female/f3_cold.mp3
+!data/sounds/female/f4_mature.mp3
+!data/sounds/female/f5_husky.mp3
+!data/sounds/male/m1_young.mp3
+!data/sounds/male/m2_warm.mp3
+!data/sounds/male/m3_deep.mp3
+!data/sounds/male/m4_cold.mp3
+!data/sounds/male/m5_husky.mp3

@@ -1,0 +1,77 @@
+{
+  "engine": "edge-tts",
+  "female": [
+    {
+      "id": "f1_sweet",
+      "label": "甜美軟糯",
+      "file": "female/f1_sweet.mp3",
+      "style": "sweet",
+      "text": "你好，我是這個角色的聲音。從今天起，我會陪你把故事說完。"
+    },
+    {
+      "id": "f2_young",
+      "label": "年輕元氣",
+      "file": "female/f2_young.mp3",
+      "style": "young",
+      "text": "嘿，別發呆啊。這次換我來帶節奏，跟緊一點。"
+    },
+    {
+      "id": "f3_cold",
+      "label": "高冷淡然",
+      "file": "female/f3_cold.mp3",
+      "style": "cold",
+      "text": "少廢話。該走的路，我自己知道。"
+    },
+    {
+      "id": "f4_mature",
+      "label": "成熟低沉",
+      "file": "female/f4_mature.mp3",
+      "style": "mature",
+      "text": "別急。有些話，今晚我會慢慢告訴你。"
+    },
+    {
+      "id": "f5_husky",
+      "label": "沙啞性感",
+      "file": "female/f5_husky.mp3",
+      "style": "husky",
+      "text": "過來一點。這段聲音，只講給你聽。"
+    }
+  ],
+  "male": [
+    {
+      "id": "m1_young",
+      "label": "年輕清爽",
+      "file": "male/m1_young.mp3",
+      "style": "male_young",
+      "text": "別怕。從現在起，我走在你前面。"
+    },
+    {
+      "id": "m2_warm",
+      "label": "溫和低音",
+      "file": "male/m2_warm.mp3",
+      "style": "male_warm",
+      "text": "慢慢來。我在這裡，不會讓你一個人。"
+    },
+    {
+      "id": "m3_deep",
+      "label": "低沉磁性",
+      "file": "male/m3_deep.mp3",
+      "style": "male_deep",
+      "text": "聽好。這門婚事，我娶。"
+    },
+    {
+      "id": "m4_cold",
+      "label": "冷淡平穩",
+      "file": "male/m4_cold.mp3",
+      "style": "male_cold",
+      "text": "再問一次。她是我太太。"
+    },
+    {
+      "id": "m5_husky",
+      "label": "沙啞粗獷",
+      "file": "male/m5_husky.mp3",
+      "style": "male_husky",
+      "text": "上車。回家再說。"
+    }
+  ]
+}

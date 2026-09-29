@@ -1,0 +1,2166 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MicroDramaGenerator</title>
+<style>
+  :root {
+    --bg:#12141a; --panel:#1c2028; --border:#2d3340; --fg:#e8eaef; --dim:#93a0b5;
+    --accent:#7c5cff; --accent2:#ff5b8a; --ok:#3ecf8e; --warn:#f0b429; --err:#ff6b6b;
+    --female:#b64b74; --male:#3f6ea6;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:"Segoe UI","Microsoft JhengHei",sans-serif; background:var(--bg); color:var(--fg); }
+  header { padding:14px 22px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  header h1 { font-size:18px; margin:0; font-weight:650; }
+  header .sub { color:var(--dim); font-size:12px; }
+  main { display:grid; grid-template-columns: 420px 1fr; gap:18px; padding:18px 22px; align-items:start; }
+  .panel { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; }
+  h2 { font-size:14px; margin:0 0 10px; letter-spacing:.04em; color:var(--dim); text-transform:uppercase; }
+  label { display:block; margin:10px 0 4px; color:var(--dim); font-size:12px; }
+  input[type=text], input[type=number], textarea, select {
+    width:100%; background:var(--bg); color:var(--fg); border:1px solid var(--border);
+    border-radius:7px; padding:8px 10px; font-size:13px;
+  }
+  textarea { min-height:64px; resize:vertical; }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .row3 { display:grid; grid-template-columns:1.3fr 1.3fr .8fr; gap:10px; }
+  button {
+    padding:8px 12px; background:var(--accent); color:#fff; border:0; border-radius:8px;
+    font-size:13px; cursor:pointer;
+  }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  button.ghost { background:#2b3140; }
+  button.pink { background:var(--accent2); }
+  button.full { width:100%; margin-top:12px; padding:11px; font-size:15px; }
+  .mini { margin:0; padding:4px 9px; font-size:12px; background:#32384a; }
+  .checks { display:flex; flex-wrap:wrap; gap:10px 14px; margin:8px 0; }
+  .checks label { display:flex; align-items:center; gap:5px; margin:0; color:var(--fg); font-size:12px; cursor:pointer; }
+  .char-box { border:1px solid var(--border); border-radius:8px; padding:8px; margin-top:6px; }
+  .char-box h3 { margin:0 0 6px; font-size:12px; color:var(--dim); font-weight:600; }
+  .char-box.female { border-left:3px solid var(--female); }
+  .char-box.male { border-left:3px solid var(--male); }
+  .char-list { width:100%; height:160px; font-size:12px; }
+  .picked { font-size:12px; color:var(--fg); margin-top:6px; min-height:18px; }
+  .cast-slot {
+    border:1px solid var(--border); border-radius:8px; padding:8px; margin-top:8px;
+    background:var(--bg); font-size:12px;
+  }
+  .cast-slot .name {
+    display:flex; justify-content:space-between; align-items:center; gap:8px;
+    color:var(--fg); margin-bottom:6px;
+  }
+  .cast-slot .name span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cast-voice { display:grid; grid-template-columns:1fr auto; gap:6px; align-items:end; }
+  .cast-voice label { margin:0 0 4px; }
+  .cast-slot select { width:100%; padding:8px 10px; font-size:13px; }
+  #log, #edLog {
+    background:var(--bg); border:1px solid var(--border); border-radius:7px; padding:10px;
+    margin-top:12px; height:180px; overflow-y:auto; font-family:Consolas,monospace; font-size:12px;
+    white-space:pre-wrap; color:var(--dim);
+  }
+  .stills { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:10px; }
+  .still-card { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px; position:relative; }
+  .still-card.busy { outline:1px solid var(--warn); }
+  .still-mask {
+    position:absolute; inset:0; z-index:2; background:rgba(12,14,20,.76);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:4px; border-radius:8px; color:var(--warn); font-size:14px; font-weight:650;
+    text-align:center; padding:10px;
+  }
+  .still-mask .sub { font-size:11px; font-weight:400; color:var(--dim); }
+  .still-card img { width:100%; max-height:160px; object-fit:contain; border-radius:6px; background:#000; display:block; cursor:zoom-in; }
+  .r2v-refs { display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px; }
+  .r2v-refs img { max-height:140px; }
+  .r2v-slot { display:flex; flex-direction:column; gap:4px; min-width:0; }
+  .still-card video { width:100%; max-height:220px; object-fit:contain; border-radius:6px; background:#000; display:block; }
+  .still-card .meta { font-size:11px; color:var(--dim); margin:6px 0; word-break:break-all; }
+  .still-card .btns { margin-top:6px; display:flex; flex-wrap:wrap; gap:6px; }
+  .seq-pack { border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:16px; background:#171b22; }
+  .seq-set { border:1px dashed var(--border); border-radius:8px; padding:10px; margin-top:10px; }
+  .seq-flow { font-size:12px; color:var(--dim); margin:4px 0 8px; word-break:break-word; }
+  .seq-joined { max-width:100%; max-height:360px; border-radius:8px; background:#000; display:block; margin-top:8px; }
+  .phead { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
+  .auto-box { border:1px dashed var(--border); border-radius:10px; padding:10px; margin-top:14px; }
+  .prog-wrap { display:none; margin-top:10px; }
+  .prog-wrap.show { display:block; }
+  .prog-label { font-size:12px; color:var(--warn); margin-bottom:4px; }
+  .prog-bar { height:6px; background:#2b3140; border-radius:99px; overflow:hidden; }
+  .prog-fill { height:100%; width:0; background:var(--accent); transition:width .2s; }
+  .prog-fill.indet { width:35%; animation:indet 1.2s ease-in-out infinite; }
+  @keyframes indet { 0%{margin-left:-35%} 100%{margin-left:100%} }
+  .modal { position:fixed; inset:0; background:rgba(0,0,0,.72); display:flex; align-items:center; justify-content:center; z-index:100; }
+  .modal-box { background:var(--panel); border:1px solid var(--border); border-radius:12px;
+    padding:16px; max-width:min(860px, 94vw); max-height:92vh; overflow-y:auto; width:720px; }
+  .modal-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .modal-box img, .modal-box video { display:block; max-width:100%; max-height:28vh; margin:0 auto 10px; border-radius:6px; background:#000; }
+  .modal-box textarea { min-height:80px; }
+  .modal-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .mode-pick { display:flex; flex-direction:column; gap:8px; }
+  .mode-pick button { text-align:left; background:#2b3140; padding:10px 12px; }
+  .mode-pick button b { display:block; font-size:14px; }
+  .mode-pick button span { display:block; color:var(--dim); font-size:12px; font-weight:400; margin-top:2px; }
+  .lightbox { position:fixed; inset:0; background:rgba(0,0,0,.88); display:flex; align-items:center; justify-content:center; z-index:120; padding:28px; cursor:zoom-out; }
+  .lightbox img { max-width:94vw; max-height:92vh; object-fit:contain; border-radius:8px; }
+  .hint { margin:0 0 8px; color:var(--dim); font-size:12px; }
+  .tabs { display:flex; gap:6px; margin-left:auto; }
+  .tabs button { background:#2b3140; padding:6px 14px; }
+  .tabs button.on { background:var(--accent); }
+  .board-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:14px; }
+  .board-head h2 { margin:0; }
+  .card-row, .seg-row { display:flex; flex-wrap:wrap; gap:8px; }
+  .board-card {
+    position:relative; width:240px; background:var(--bg); border:1px solid var(--border);
+    border-radius:8px; padding:8px; font-size:12px;
+  }
+  .board-card img.card-shot {
+    width:100%; height:128px; object-fit:contain; background:#000;
+    border-radius:6px; display:block; margin-bottom:6px; cursor:zoom-in;
+  }
+  .card-actions { display:flex; gap:6px; margin-top:6px; }
+  .card-actions button { flex:1; margin:0; }
+  .board-card video.card-shot { width:100%; max-height:128px; object-fit:contain; background:#000; border-radius:6px; display:block; margin-bottom:6px; }
+  .board-card textarea { min-height:52px; }
+  .board-card.female { border-left:3px solid var(--female); }
+  .board-card.male { border-left:3px solid var(--male); }
+  .board-card.loc { border-left:3px solid var(--ok); }
+  .board-card b { display:block; padding-right:26px; word-break:break-all; }
+  .board-card .js-x { position:absolute; top:4px; right:4px; padding:2px 6px; }
+  .seg-chip {
+    width:220px; background:var(--bg); border:1px solid var(--border); border-radius:8px;
+    padding:8px; cursor:pointer; text-align:left;
+  }
+  .seg-chip input { margin-top:4px; padding:4px 6px; }
+  .seg-chip video, .seg-chip img.seg-shot {
+    width:100%; max-height:120px; object-fit:contain; background:#000;
+    border-radius:6px; display:block; margin:6px 0;
+  }
+  .seg-chip .js-make { width:100%; margin-top:6px; }
+  body.mode-edit main { grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); }
+  .theme-list { display:flex; flex-direction:column; gap:8px; }
+  .theme-card {
+    position:relative; background:var(--bg); border:1px solid var(--border);
+    border-radius:8px; padding:8px; cursor:pointer; text-align:left;
+  }
+  .theme-card.on { border-color:var(--accent); }
+  .theme-card video, .theme-card img {
+    width:100%; max-height:150px; object-fit:contain; background:#000;
+    border-radius:6px; display:block;
+  }
+  .theme-card b { display:block; margin-top:6px; padding-right:28px; word-break:break-all; }
+  .theme-card .js-x { position:absolute; top:6px; right:6px; }
+  .theme-empty {
+    height:92px; display:flex; align-items:center; justify-content:center;
+    color:var(--dim); background:#000; border-radius:6px; font-size:12px;
+  }
+  .chip-pick { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip-pick button { background:#2b3140; }
+  .chip-pick button.on { background:var(--accent); }
+  [hidden] { display:none !important; }
+  @media (max-width:900px) {
+    main, body.mode-edit main { grid-template-columns:1fr; }
+    .row3 { grid-template-columns:1fr; }
+    .card-actions { flex-direction:column; }
+    .board-card, .seg-chip, .theme-card { width:100%; }
+  }
+</style>
+</head>
+<body class="mode-edit">
+<header>
+  <h1>MicroDramaGenerator</h1>
+  <span class="sub">Danbooru 角色 · Diffusers 參考圖 · MiniMax H3 R2V 短劇</span>
+  <nav class="tabs">
+    <button type="button" id="tabStudio" class="tab">短劇</button>
+    <button type="button" id="tabEdit" class="tab on">編輯模式</button>
+  </nav>
+</header>
+<main>
+  <div class="panel" id="studio" hidden>
+    <div id="castBlock">
+    <h2>角色</h2>
+    <p class="hint">先選作品再選角色。女／男各 0～3 名。加入後可用角色名稱選聲線。產圖至少一名女角。</p>
+    <div class="char-box female">
+      <h3>女角色 <span id="femaleCount">0/3</span></h3>
+      <label>作品</label>
+      <select id="femaleSeries"></select>
+      <input type="text" id="femaleQ" placeholder="搜尋中文名、標籤或作品…">
+      <select id="femaleList" class="char-list" size="8"></select>
+      <button class="ghost full" id="femaleAdd" type="button" style="margin-top:6px">＋ 加入女角</button>
+      <div id="femaleSlots"></div>
+    </div>
+    <div class="char-box male">
+      <h3>男角色 <span id="maleCount">0/3</span></h3>
+      <label>作品</label>
+      <select id="maleSeries"></select>
+      <input type="text" id="maleQ" placeholder="搜尋中文名、標籤或作品…">
+      <select id="maleList" class="char-list" size="8"></select>
+      <button class="ghost full" id="maleAdd" type="button" style="margin-top:6px">＋ 加入男角</button>
+      <div id="maleSlots"></div>
+    </div>
+    </div>
+
+    <div class="row2">
+      <div>
+        <label>女衣著</label>
+        <select id="theme"></select>
+      </div>
+      <div>
+        <label>男衣著</label>
+        <select id="maleTheme"></select>
+      </div>
+    </div>
+    <div class="row2">
+      <div>
+        <label>Diffusers 模型</label>
+        <select id="sdModel"></select>
+      </div>
+      <div>
+        <label>Ollama</label>
+        <select id="ollamaModel"></select>
+      </div>
+    </div>
+    <div class="row2">
+      <div>
+        <label>H3 Turbo</label>
+        <select id="turbo">
+          <option value="8">8-step</option>
+          <option value="4">4-step</option>
+          <option value="0">關閉（20-step）</option>
+        </select>
+      </div>
+      <div>
+        <label>台詞用誰的聲音</label>
+        <select id="voiceStyle"></select>
+      </div>
+    </div>
+    <label>語言</label>
+    <select id="voiceLang">
+      <option value="zh" selected>中文</option>
+      <option value="ja">日文</option>
+      <option value="en">英文</option>
+    </select>
+    <div class="checks">
+      <label><input type="checkbox" id="nsfw" checked> NSFW</label>
+      <label><input type="checkbox" id="voiceOn" checked> 語音</label>
+      <label><input type="checkbox" id="quality" checked> 品質前綴</label>
+    </div>
+    <label>補充（場景／劇情備註）</label>
+    <textarea id="extra" placeholder="可空。會加進場景／段落 extra。"></textarea>
+    <label>Seed（可空＝隨機）</label>
+    <input type="number" id="seed" placeholder="">
+
+    <div class="auto-box">
+      <h2>短劇</h2>
+      <p class="hint">選內建劇本，或用 Ollama 依目前角色寫一篇。產參考圖時每段會同時寫好 R2V 與 I2V 兩份鏡頭稿。產動畫時再選 R2V、I2V 尾幀，或 I2V 聲線克隆。第一段沒有尾幀時改走 R2V。</p>
+      <label>劇本</label>
+      <select id="storyPick"></select>
+      <div id="storyFlow" class="seq-flow"></div>
+      <label>Ollama 短劇前提（可空＝自行發想）</label>
+      <textarea id="premise" placeholder="例如：雨夜旅館、辦公室加班、只聊天不色情…"></textarea>
+      <button class="full pink" id="inventGo">用 Ollama 生成短劇</button>
+      <button class="full" id="storyGo" style="background:#8a4a2a">開始產角色圖／場景圖</button>
+    </div>
+
+    <div id="sideProg" class="prog-wrap">
+      <div class="prog-label" id="sideProgLabel">處理中…</div>
+      <div class="prog-bar"><div class="prog-fill" id="sideProgFill"></div></div>
+    </div>
+    <div id="log">（尚未開始）</div>
+  </div>
+
+  <div class="panel" id="watch" hidden>
+    <h2>短劇</h2>
+    <p class="hint">卡片：女／男／場景參考圖。點「產生動畫」或編輯後再選 R2V、I2V 尾幀、I2V 聲線克隆。有動作庫的段落會標「動作參考」。</p>
+    <div id="storyList">載入中…</div>
+  </div>
+
+  <div class="panel" id="edRail">
+    <div class="phead">
+      <h2>主題</h2>
+      <button type="button" class="mini" id="edNew">＋ 主題</button>
+    </div>
+    <p class="hint">每個主題的結果放這裡。有動畫就顯示影片，否則顯示參考圖。點一下，右邊編輯這個主題。</p>
+    <div id="edThemes" class="theme-list"></div>
+  </div>
+
+  <div class="panel" id="editor">
+    <h2>編輯主題</h2>
+    <p class="hint">角色卡和場地卡可以生成或上傳圖片。每個段落自己生成動畫，會用這一鏡的劇情、對白、角色卡和場地卡。</p>
+    <label>主題</label>
+    <input type="text" id="edTheme" placeholder="例如：雨夜旅館、牆裡的金塊">
+    <div class="row3">
+      <div>
+        <label>Diffusers 模型</label>
+        <select id="edSdModel"></select>
+      </div>
+      <div>
+        <label>Ollama</label>
+        <select id="edOllama"></select>
+      </div>
+      <div>
+        <label>語言</label>
+        <select id="edVoiceLang">
+          <option value="zh">中文</option>
+          <option value="ja">日文</option>
+          <option value="en">英文</option>
+        </select>
+      </div>
+    </div>
+    <div class="board-head">
+      <h2>角色卡</h2>
+      <span>
+        <button type="button" class="mini" id="edAddChar">＋ 選擇角色</button>
+        <button type="button" class="mini" id="edAddCustom">＋ 自訂</button>
+      </span>
+    </div>
+    <p class="hint">女／男各最多 50 張。可選衣著與聲線，也能直接上傳圖片。上傳的圖會一直用，直到你再生成或再上傳。</p>
+    <div id="edChars" class="card-row"></div>
+    <div class="board-head">
+      <h2>場地卡</h2>
+      <button type="button" class="mini" id="edAddLoc">＋ 新增場地</button>
+    </div>
+    <p class="hint">建立時可選場地項目，並自行補描述。也可以直接上傳場景圖。</p>
+    <div id="edLocs" class="card-row"></div>
+    <div class="board-head">
+      <h2>R2V 參考動畫</h2>
+      <button type="button" class="mini" id="edAddMotion">＋ 上傳參考動畫</button>
+    </div>
+    <p class="hint">共用參考片放在 data/video，data 根目錄的 mp4 也會出現在段落選單。可只借動作，或連音軌一起複製。上傳的片子只屬於這份草稿。</p>
+    <div id="edMotions" class="card-row"></div>
+    <div class="board-head">
+      <h2>段落</h2>
+      <span>
+        <button type="button" class="mini" id="edJoin">合併段落</button>
+        <button type="button" class="mini" id="edAddSeg">＋ 新增段落</button>
+      </span>
+    </div>
+    <p class="hint">名稱預設 1、2、3…，可直接改。點卡片改劇情。每一段自己按生成動畫。都做好後可依順序合併成一支。</p>
+    <div id="edSegs" class="seg-row"></div>
+    <div id="edPack" class="seq-flow"></div>
+    <div id="edProg" class="prog-wrap">
+      <div class="prog-label" id="edProgLabel">處理中…</div>
+      <div class="prog-bar"><div class="prog-fill" id="edProgFill"></div></div>
+    </div>
+    <div id="edLog">（尚未開始）</div>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const CLIP_INFO = {};
+const CLIP_JOBS = {};
+const ACTIVE_JOBS = {};
+let pollTimer = null;
+let OPT = {};
+let femaleSlots = [];
+let maleSlots = [];
+let femaleTimer = null;
+let maleTimer = null;
+const MAX_CAST = 3;
+
+function esc(s) {
+  return String(s || "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
+  }[c]));
+}
+
+function commonFlags() {
+  return {
+    nsfw: $("nsfw").checked,
+    quality: $("quality").checked,
+    image_backend: "diffusers",
+    diffusers_model: $("sdModel").value,
+    ollama_model: $("ollamaModel").value,
+    voice_style: speakerStyle(),
+    language: $("voiceLang").value || "zh",
+  };
+}
+
+function fillSeriesSelect(selId, rows) {
+  const sel = $(selId);
+  const cur = sel.value;
+  sel.innerHTML = [`<option value="">全部作品</option>`].concat(
+    (rows || []).map(s => `<option value="${esc(s.label)}">${esc(s.label)}（${s.count}）</option>`)
+  ).join("");
+  if (cur && [...sel.options].some(o => o.value === cur)) sel.value = cur;
+}
+
+async function loadChars(gender, q, selId) {
+  const seriesId = gender === "female" ? "femaleSeries" : "maleSeries";
+  const series = ($(seriesId) && $(seriesId).value) || "";
+  const limit = series ? 400 : 200;
+  const res = await fetch(`/api/characters?gender=${encodeURIComponent(gender)}&q=${encodeURIComponent(q || "")}&series=${encodeURIComponent(series)}&limit=${limit}`);
+  const data = await res.json();
+  const sel = $(selId);
+  const groups = new Map();
+  (data.items || []).forEach(c => {
+    const s = c.series || "其他";
+    if (!groups.has(s)) groups.set(s, []);
+    groups.get(s).push(c);
+  });
+  const parts = [];
+  groups.forEach((arr, s) => {
+    parts.push(`<optgroup label="${esc(s)}（${arr.length}）">`);
+    arr.forEach(c => {
+      const label = (c.zh ? c.zh + "  ·  " : "") + c.title;
+      parts.push(`<option value="${esc(c.title)}" data-voice="${esc(c.voice || "")}" data-voice-label="${esc(c.voice_label || "")}" data-series="${esc(c.series || "")}">${esc(label)}</option>`);
+    });
+    parts.push(`</optgroup>`);
+  });
+  sel.innerHTML = parts.join("") || `<option value="">（沒有角色）</option>`;
+  if (sel.options.length) sel.selectedIndex = 0;
+}
+
+function leadFemale() { return (femaleSlots[0] || {}).title || ""; }
+function leadMale() { return (maleSlots[0] || {}).title || ""; }
+function allCast() { return femaleSlots.concat(maleSlots); }
+function charName(s) {
+  const t = (s.label || s.title || "");
+  const i = t.indexOf("·");
+  return (i >= 0 ? t.slice(0, i) : t).trim() || s.title;
+}
+function resolveSample(slot, seen) {
+  if (!slot) return { id: "", url: "", style: "" };
+  seen = seen || new Set();
+  if (seen.has(slot.title)) return { id: slot.sampleId || "", url: slot.sampleUrl || "", style: slot.voice || "" };
+  seen.add(slot.title);
+  const ref = slot.voiceRef || "";
+  if (ref.startsWith("char:")) {
+    const other = allCast().find(x => x.title === ref.slice(5));
+    if (other && other !== slot) return resolveSample(other, seen);
+  }
+  if (ref && !ref.startsWith("char:")) {
+    const g = slot.gender || "female";
+    const r = voiceRefs(g).find(x => x.id === ref);
+    if (r) return { id: r.id, url: r.url || "", style: r.style || slot.voice || "" };
+  }
+  return { id: slot.sampleId || "", url: slot.sampleUrl || "", style: slot.voice || "" };
+}
+function castPayload(slots) {
+  return slots.map(s => {
+    const sm = resolveSample(s);
+    return { character: s.title, voice_ref: sm.id || s.sampleId || "" };
+  });
+}
+function speakerStyle() {
+  const v = $("voiceStyle").value;
+  const person = allCast().find(s => s.title === v);
+  if (person) return resolveSample(person).style || person.voice || "";
+  return v;
+}
+function speakerVoiceRef() {
+  const v = $("voiceStyle").value;
+  const person = allCast().find(s => s.title === v);
+  if (person) return resolveSample(person).id || "";
+  return "";
+}
+
+const FALLBACK_REFS = {
+  female: [
+    {id:"f1_sweet", label:"甜美軟糯", url:"/sounds/female/f1_sweet.mp3", style:"sweet"},
+    {id:"f2_young", label:"年輕元氣", url:"/sounds/female/f2_young.mp3", style:"young"},
+    {id:"f3_cold", label:"高冷淡然", url:"/sounds/female/f3_cold.mp3", style:"cold"},
+    {id:"f4_mature", label:"成熟低沉", url:"/sounds/female/f4_mature.mp3", style:"mature"},
+    {id:"f5_husky", label:"沙啞性感", url:"/sounds/female/f5_husky.mp3", style:"husky"},
+  ],
+  male: [
+    {id:"m1_young", label:"年輕清爽", url:"/sounds/male/m1_young.mp3", style:"male_young"},
+    {id:"m2_warm", label:"溫和低音", url:"/sounds/male/m2_warm.mp3", style:"male_warm"},
+    {id:"m3_deep", label:"低沉磁性", url:"/sounds/male/m3_deep.mp3", style:"male_deep"},
+    {id:"m4_cold", label:"冷淡平穩", url:"/sounds/male/m4_cold.mp3", style:"male_cold"},
+    {id:"m5_husky", label:"沙啞粗獷", url:"/sounds/male/m5_husky.mp3", style:"male_husky"},
+  ],
+};
+let previewAudio = null;
+
+function voiceRefs(gender) {
+  const live = ((OPT.voice_refs || {})[gender] || []).filter(r => r && r.id);
+  return live.length ? live : (FALLBACK_REFS[gender] || []);
+}
+
+function voiceRefOptions(gender, selected) {
+  const refs = voiceRefs(gender);
+  const opts = [`<option value="">（無參考音）</option>`];
+  const people = allCast();
+  if (people.length) {
+    opts.push(`<optgroup label="角色">`);
+    people.forEach(s => {
+      const sm = { id: s.sampleId || "", url: s.sampleUrl || "", style: s.voice || "" };
+      const val = "char:" + s.title;
+      opts.push(`<option value="${esc(val)}" ${val===selected?"selected":""} data-url="${esc(sm.url)}" data-style="${esc(sm.style)}">${esc(charName(s))}</option>`);
+    });
+    opts.push(`</optgroup>`);
+  }
+  const namedRefs = refs.filter(r => !/^[fm]\d_/.test(r.id || ""));
+  const presetRefs = refs.filter(r => /^[fm]\d_/.test(r.id || ""));
+  if (namedRefs.length) {
+    opts.push(`<optgroup label="角色參考音">`);
+    namedRefs.forEach(r => {
+      const url = r.url || (r.file ? "/sounds/" + r.file : "");
+      opts.push(`<option value="${esc(r.id)}" ${r.id===selected?"selected":""} data-url="${esc(url)}" data-style="${esc(r.style || "")}">${esc(r.label || r.id)}</option>`);
+    });
+    opts.push(`</optgroup>`);
+  }
+  opts.push(`<optgroup label="預設音色">`);
+  presetRefs.forEach(r => {
+    const url = r.url || (r.file ? "/sounds/" + r.file : "");
+    opts.push(`<option value="${esc(r.id)}" ${r.id===selected?"selected":""} data-url="${esc(url)}" data-style="${esc(r.style || "")}">${esc(r.label || r.id)}</option>`);
+  });
+  opts.push(`</optgroup>`);
+  return opts.join("");
+}
+
+function fillSpeakerSelect() {
+  const sel = $("voiceStyle");
+  const cur = sel.value;
+  const people = allCast();
+  if (!people.length) {
+    sel.innerHTML = (OPT.voices || []).map(v =>
+      `<option value="${esc(v.key)}" ${v.key===OPT.voice_style?"selected":""}>${esc(v.label || v.key)}</option>`).join("");
+    return;
+  }
+  sel.innerHTML = people.map(s =>
+    `<option value="${esc(s.title)}">${esc(charName(s))}</option>`).join("");
+  if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+  else sel.selectedIndex = 0;
+}
+
+function refreshCast() {
+  renderSlots("female");
+  renderSlots("male");
+  fillSpeakerSelect();
+}
+
+function renderSlots(gender) {
+  const slots = gender === "female" ? femaleSlots : maleSlots;
+  const box = $(gender === "female" ? "femaleSlots" : "maleSlots");
+  $(gender === "female" ? "femaleCount" : "maleCount").textContent = `${slots.length}/${MAX_CAST}`;
+  box.innerHTML = slots.map((s, i) => `
+    <div class="cast-slot" data-gender="${gender}" data-i="${i}">
+      <div class="name">
+        <span title="${esc(s.label || s.title)}">${i+1}. ${esc(s.label || s.title)}</span>
+        <button class="mini js-rm" type="button">移除</button>
+      </div>
+      <div class="cast-voice">
+        <div>
+          <label>聲線（角色名／預設音色）</label>
+          <select class="js-vref">${voiceRefOptions(gender, s.voiceRef || "")}</select>
+        </div>
+        <button class="ghost js-play" type="button">試聽</button>
+      </div>
+    </div>`).join("") || `<div class="picked">${gender==="female"?"尚未加入女角":"空白＝預設男圖"}</div>`;
+  box.querySelectorAll(".cast-slot").forEach(row => {
+    const i = parseInt(row.getAttribute("data-i"), 10);
+    const sel = row.querySelector(".js-vref");
+    const applyRef = () => {
+      const opt = sel.selectedOptions[0];
+      slots[i].voiceRef = sel.value;
+      const sm = resolveSample(slots[i]);
+      slots[i].voiceUrl = sm.url || (opt ? (opt.getAttribute("data-url") || "") : "");
+      if (gender === "female" && i === 0) fillSpeakerSelect();
+    };
+    sel.onchange = applyRef;
+    row.querySelector(".js-play").onclick = () => {
+      applyRef();
+      const url = resolveSample(slots[i]).url || slots[i].voiceUrl;
+      if (!url) { alert("請先選一條聲線"); return; }
+      if (previewAudio) { previewAudio.pause(); previewAudio = null; }
+      previewAudio = new Audio(url);
+      previewAudio.play().catch(() => alert("播不了參考音。請重開 start.bat 後再試。"));
+    };
+    row.querySelector(".js-rm").onclick = () => {
+      slots.splice(i, 1);
+      refreshCast();
+    };
+  });
+}
+
+function addSlot(gender) {
+  const list = $(gender === "female" ? "femaleList" : "maleList");
+  const title = list.value;
+  if (!title) { alert("請先在清單裡選一個角色"); return; }
+  const slots = gender === "female" ? femaleSlots : maleSlots;
+  if (slots.length >= MAX_CAST) { alert("同一邊最多 3 名"); return; }
+  if (slots.some(s => s.title === title)) { alert("已經加入了"); return; }
+  const opt = list.selectedOptions[0];
+  const refs = voiceRefs(gender);
+  const used = slots.map(s => s.sampleId).filter(Boolean);
+  const autoStyle = opt ? (opt.getAttribute("data-voice") || "") : "";
+  const nm = charName({ label: opt ? opt.text : title, title });
+  const named = refs.find(r => r.label === nm || r.id === nm)
+    || refs.find(r => r.label && r.label.length >= 2 && (nm.includes(r.label) || title.includes(r.label)))
+    || refs.find(r => r.label && r.label.length === 1 && (nm === r.label || nm.startsWith(r.label + "（") || nm.startsWith(r.label + "(")));
+  const match = named
+    || refs.find(r => r.style === autoStyle && !used.includes(r.id))
+    || refs.find(r => !used.includes(r.id))
+    || refs[0]
+    || null;
+  slots.push({
+    title,
+    label: opt ? opt.text : title,
+    gender,
+    voice: (match && match.style) || autoStyle,
+    sampleId: match ? match.id : "",
+    sampleUrl: match ? (match.url || "") : "",
+    voiceRef: "char:" + title,
+    voiceUrl: match ? (match.url || "") : "",
+  });
+  refreshCast();
+}
+
+function fillStorySelect(stories) {
+  const sel = $("storyPick");
+  const cur = sel.value;
+  const rows = (stories || []).filter(s => s.source !== "editor");
+  sel.innerHTML = rows.map(s => {
+    const src = s.source === "ollama" ? " · Ollama" : "";
+    return `<option value="${esc(s.id)}">${esc(s.title)}（${s.count}段 ${s.total}s${src}）</option>`;
+  }).join("");
+  if (cur && [...sel.options].some(o => o.value === cur)) sel.value = cur;
+  renderFlow();
+}
+
+function renderFlow() {
+  const id = $("storyPick").value;
+  const s = (OPT.stories || []).find(x => x.id === id);
+  const el = $("storyFlow");
+  if (!s) { el.textContent = ""; return; }
+  const bits = (s.fragments || []).map(b => {
+    const n = b.nsfw ? " NSFW" : "";
+    return `${b.title} ${b.duration}s${n}`;
+  });
+  const c = s.cast || {};
+  const hint = (c.female != null || c.male != null)
+    ? `建議女${c.female ?? 1} 男${c.male ?? 1}　`
+    : "";
+  el.textContent = hint + (s.summary ? s.summary + "　" : "") + bits.join(" → ");
+}
+
+async function boot() {
+  const res = await fetch("/api/options");
+  OPT = await res.json();
+  $("theme").innerHTML = Object.entries(OPT.themes || {}).map(([k,v]) =>
+    `<option value="${esc(k)}">${esc(v)}</option>`).join("");
+  $("maleTheme").innerHTML = Object.entries(OPT.male_themes || {"original":"原作衣著（不換裝）"}).map(([k,v]) =>
+    `<option value="${esc(k)}">${esc(v)}</option>`).join("");
+  $("sdModel").innerHTML = Object.entries(OPT.diffusers_models || {}).map(([k,v]) =>
+    `<option value="${esc(k)}" ${k===OPT.diffusers_model?"selected":""}>${esc(v.label || k)}</option>`).join("");
+  const ollama = OPT.ollama_models || [];
+  $("ollamaModel").innerHTML = ollama.length
+    ? ollama.map(m => `<option value="${esc(m.name)}" ${m.name===OPT.ollama_model?"selected":""}>${esc(m.name)}</option>`).join("")
+    : `<option value="${esc(OPT.ollama_model || "")}">${esc(OPT.ollama_model || "（沒有 Ollama）")}</option>`;
+  $("voiceLang").value = OPT.language || "zh";
+  if ($("edSdModel")) $("edSdModel").innerHTML = $("sdModel").innerHTML;
+  if ($("edOllama")) $("edOllama").innerHTML = $("ollamaModel").innerHTML;
+  if ($("edVoiceLang")) $("edVoiceLang").value = OPT.language || "zh";
+  $("turbo").value = String(OPT.turbo_steps ?? 8);
+  fillSeriesSelect("femaleSeries", OPT.series_female);
+  fillSeriesSelect("maleSeries", OPT.series_male);
+  fillStorySelect(OPT.stories);
+  await Promise.all([
+    loadChars("female", "", "femaleList"),
+    loadChars("male", "", "maleList"),
+  ]);
+  $("maleList").selectedIndex = -1;
+  refreshCast();
+  refreshGallery();
+  initEditor().catch(err => {
+    const pack = $("edPack");
+    if (pack) pack.textContent = "編輯模式載入失敗：" + err;
+  });
+}
+
+$("femaleQ").addEventListener("input", () => {
+  clearTimeout(femaleTimer);
+  femaleTimer = setTimeout(() => loadChars("female", $("femaleQ").value, "femaleList"), 200);
+});
+$("maleQ").addEventListener("input", () => {
+  clearTimeout(maleTimer);
+  maleTimer = setTimeout(() => loadChars("male", $("maleQ").value, "maleList"), 200);
+});
+$("femaleSeries").onchange = () => loadChars("female", $("femaleQ").value, "femaleList");
+$("maleSeries").onchange = () => loadChars("male", $("maleQ").value, "maleList");
+$("femaleAdd").onclick = () => addSlot("female");
+$("maleAdd").onclick = () => addSlot("male");
+$("storyPick").onchange = renderFlow;
+
+const MODE_LABEL = {r2v:"R2V", i2v:"I2V", i2v_clone:"I2V 聲線克隆"};
+let draft = null;
+let saveTimer = null;
+let edSeq = 1;
+
+function newDraftId() {
+  return "ed_" + Date.now().toString(36) + Math.random().toString(16).slice(2, 6);
+}
+function blankDraft() {
+  return {id: newDraftId(), theme:"", characters:[], locations:[], motions:[], segments:[], story_id:"", pack_id:""};
+}
+function pickFile(accept) {
+  return new Promise((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = accept;
+    input.onchange = () => resolve((input.files && input.files[0]) || null);
+    input.click();
+  });
+}
+function edUid(prefix) {
+  edSeq += 1;
+  return prefix + Date.now().toString(36) + edSeq.toString(36);
+}
+function nextSegName() {
+  let max = 0;
+  (draft.segments || []).forEach(s => {
+    const n = parseInt(String(s.name || "").trim(), 10);
+    if (String(n) === String(s.name || "").trim() && n > max) max = n;
+  });
+  return String(max + 1);
+}
+function countGender(g) {
+  return (draft.characters || []).filter(c => (c.gender || "female") === g).length;
+}
+function cardLabel(c) {
+  return c.label || c.title || c.name || "未命名";
+}
+function edVoiceOptions(gender, selected) {
+  const opts = [`<option value="">（無參考音）</option>`];
+  voiceRefs(gender).forEach(r => {
+    opts.push(`<option value="${esc(r.id)}" ${r.id===selected?"selected":""}>${esc(r.label || r.id)}</option>`);
+  });
+  return opts.join("");
+}
+function showTab(name) {
+  const edit = name === "edit";
+  document.body.classList.toggle("mode-edit", edit);
+  $("studio").hidden = edit;
+  $("watch").hidden = edit;
+  $("edRail").hidden = !edit;
+  $("editor").hidden = !edit;
+  $("tabStudio").classList.toggle("on", !edit);
+  $("tabEdit").classList.toggle("on", edit);
+}
+function wearOptions(gender, selected) {
+  const map = gender === "male" ? (OPT.male_themes || {}) : (OPT.themes || {});
+  const cur = selected || "original";
+  return Object.entries(map).map(([k, v]) =>
+    `<option value="${esc(k)}" ${k===cur?"selected":""}>${esc(v)}</option>`
+  ).join("");
+}
+function sceneOptions(selected) {
+  const groups = OPT.scene_groups || [];
+  const labels = OPT.scenes || {};
+  const parts = [`<option value="">（不選項目）</option>`];
+  groups.forEach(g => {
+    parts.push(`<optgroup label="${esc(g.label)}">`);
+    (g.keys || []).forEach(k => {
+      parts.push(`<option value="${esc(k)}" ${k===selected?"selected":""}>${esc(labels[k] || k)}</option>`);
+    });
+    parts.push(`</optgroup>`);
+  });
+  return parts.join("");
+}
+function motionOptions(selected) {
+  const parts = [`<option value="">（不使用）</option>`];
+  const libs = OPT.video_refs || [];
+  if (libs.length) {
+    parts.push(`<optgroup label="參考庫">`);
+    libs.forEach(v => {
+      const label = v.name + (v.seconds ? `（${v.seconds}s）` : "");
+      parts.push(`<option value="${esc(v.id)}" ${v.id===selected?"selected":""}>${esc(label)}</option>`);
+    });
+    parts.push(`</optgroup>`);
+  }
+  const mine = (draft && draft.motions) || [];
+  if (mine.length) {
+    parts.push(`<optgroup label="這份草稿">`);
+    mine.forEach(m => {
+      parts.push(`<option value="${esc(m.id)}" ${m.id===selected?"selected":""}>${esc(m.name || m.id)}</option>`);
+    });
+    parts.push(`</optgroup>`);
+  }
+  return parts.join("");
+}
+function videoRefOf(id) {
+  return (OPT.video_refs || []).find(v => v.id === id) || null;
+}
+function motionUrl(motion) {
+  if (!draft || !motion || !motion.id) return "";
+  return `/api/drafts/${encodeURIComponent(draft.id)}/motions/${encodeURIComponent(motion.id)}.mp4`;
+}
+function cardImageUrl(card) {
+  if (!draft || !card || !card.image) return "";
+  const name = String(card.image).split("/").pop();
+  if (!name) return "";
+  const v = card.image_at || 1;
+  return `/api/drafts/${encodeURIComponent(draft.id)}/images/${encodeURIComponent(name)}?v=${encodeURIComponent(v)}`;
+}
+function leadCard(seg) {
+  const ids = (seg && seg.characterIds) || [];
+  const chars = (draft && draft.characters) || [];
+  return chars.find(c => ids.includes(c.id) && (c.gender || "female") !== "male")
+    || chars.find(c => (c.gender || "female") !== "male")
+    || null;
+}
+function cardVoiceStyle(card) {
+  if (!card || !card.voiceRef) return "";
+  const g = card.gender === "male" ? "male" : "female";
+  const hit = voiceRefs(g).find(r => r.id === card.voiceRef);
+  return (hit && hit.style) || "";
+}
+function segMedia(seg) {
+  const map = (draft && draft.media) || {};
+  return (seg && map[seg.id]) || {};
+}
+function editorAnimateBody(clipMode, seg) {
+  const card = leadCard(seg);
+  return {
+    image_backend: "diffusers",
+    diffusers_model: $("edSdModel") ? $("edSdModel").value : "",
+    video_model: "minimax_h3",
+    turbo_steps: parseInt(OPT.turbo_steps ?? 8, 10),
+    voice: true,
+    language: ($("edVoiceLang") && $("edVoiceLang").value) || "zh",
+    voice_style: cardVoiceStyle(card),
+    voice_ref: card ? (card.voiceRef || "") : "",
+    ollama_model: $("edOllama") ? $("edOllama").value : "",
+    story_link: "auto",
+    clip_mode: clipMode || (seg && seg.clipMode) || "r2v",
+  };
+}
+const CARD_JOBS = {};
+const SEG_JOBS = {};
+let themeRows = [];
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { saveDraft().catch(() => {}); }, 400);
+}
+async function saveDraft() {
+  if (!draft || !draft.id) return;
+  draft.theme = $("edTheme") ? $("edTheme").value : (draft.theme || "");
+  const res = await fetch("/api/drafts/" + encodeURIComponent(draft.id), {
+    method:"PUT", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(draft),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const saved = await res.json();
+  if (saved.story_id) draft.story_id = saved.story_id;
+  localStorage.setItem("mdg.draft", draft.id);
+}
+async function refreshDraftList() {
+  const res = await fetch("/api/drafts");
+  if (!res.ok) throw new Error(await res.text());
+  themeRows = (await res.json()).drafts || [];
+  renderThemeRail();
+}
+function renderThemeRail() {
+  const el = $("edThemes");
+  if (!el) return;
+  const cur = draft && draft.id;
+  const rows = themeRows.slice();
+  if (cur && !rows.some(d => d.id === cur)) {
+    const med = Object.values((draft && draft.media) || {});
+    const hit = med.find(m => m && m.video) || med.find(m => m && m.image);
+    rows.unshift({
+      id: cur,
+      theme: draft.theme || "",
+      segments: (draft.segments || []).length,
+      preview: hit && hit.video ? {kind:"video", url:hit.video}
+        : hit && hit.image ? {kind:"image", url:hit.image}
+        : {kind:"", url:""},
+    });
+  }
+  el.innerHTML = rows.map(d => {
+    const prev = d.preview || {};
+    const shot = prev.kind === "video" && prev.url
+      ? `<video src="${esc(prev.url)}" muted playsinline></video>`
+      : prev.kind === "image" && prev.url
+        ? `<img src="${esc(prev.url)}" alt="">`
+        : `<div class="theme-empty">尚未生成</div>`;
+    return `<div class="theme-card${d.id === cur ? " on" : ""}" data-id="${esc(d.id)}">
+      <button class="mini js-x" type="button">✕</button>
+      ${shot}
+      <b>${esc(d.theme || "未命名")}</b>
+      <div class="meta">${d.segments || 0} 段</div>
+    </div>`;
+  }).join("") || `<div class="picked">還沒有主題</div>`;
+  el.querySelectorAll(".theme-card").forEach(card => {
+    const id = card.getAttribute("data-id");
+    card.querySelector(".js-x").onclick = (e) => {
+      e.stopPropagation();
+      deleteTheme(id);
+    };
+    card.onclick = () => selectTheme(id);
+  });
+}
+async function selectTheme(id) {
+  if (!id || (draft && id === draft.id)) return;
+  clearTimeout(saveTimer);
+  try { await saveDraft(); } catch (e) {}
+  try { await loadDraft(id); } catch (e) { alert(e.message || e); }
+}
+async function deleteTheme(id) {
+  const row = themeRows.find(d => d.id === id) || (draft && draft.id === id ? draft : null);
+  const name = (row && row.theme) || "未命名";
+  if (!confirm(`刪除主題「${name}」？`)) return;
+  clearTimeout(saveTimer);
+  if (draft && draft.id === id) {
+    await fetch("/api/drafts/" + encodeURIComponent(id), {method:"DELETE"});
+    localStorage.removeItem("mdg.draft");
+    const left = themeRows.filter(d => d.id !== id);
+    if (left.length) {
+      try { await loadDraft(left[0].id); return; } catch (e) {}
+    }
+    draft = blankDraft();
+    if ($("edTheme")) $("edTheme").value = "";
+    renderEditor();
+    await refreshDraftList();
+    return;
+  }
+  const res = await fetch("/api/drafts/" + encodeURIComponent(id), {method:"DELETE"});
+  if (!res.ok) { alert(await res.text()); return; }
+  await refreshDraftList();
+}
+async function loadDraft(id) {
+  const res = await fetch("/api/drafts/" + encodeURIComponent(id));
+  if (!res.ok) throw new Error(await res.text());
+  draft = await res.json();
+  draft.characters = draft.characters || [];
+  draft.locations = draft.locations || [];
+  draft.motions = draft.motions || [];
+  draft.segments = draft.segments || [];
+  localStorage.setItem("mdg.draft", draft.id);
+  if ($("edTheme")) $("edTheme").value = draft.theme || "";
+  renderEditor();
+  await refreshDraftList();
+}
+function renderEditor() {
+  if (!draft) draft = blankDraft();
+  if ($("edTheme") && document.activeElement !== $("edTheme")) $("edTheme").value = draft.theme || "";
+  const chars = $("edChars");
+  chars.innerHTML = (draft.characters || []).map(c => {
+    const g = c.gender === "male" ? "male" : "female";
+    const src = cardImageUrl(c);
+    const busy = !!CARD_JOBS[c.id];
+    return `
+    <div class="board-card ${g}" data-id="${esc(c.id)}">
+      <button class="mini js-x" type="button">✕</button>
+      ${src ? `<img class="card-shot" src="${esc(src)}" alt="">` : ""}
+      <b>${esc(cardLabel(c))}</b>
+      <div class="meta">${g === "male" ? "男" : "女"}　${c.kind === "custom" ? "自訂" : "角色庫"}</div>
+      <label>衣著</label>
+      <select class="js-wear">${wearOptions(g, c.theme || "original")}</select>
+      <label>聲線</label>
+      <select class="js-voice">${edVoiceOptions(g, c.voiceRef || "")}</select>
+      <div class="card-actions">
+        <button class="mini js-gen" type="button" ${busy ? "disabled" : ""}>${busy ? "生成中…" : (c.image ? "再次生成" : "生成")}</button>
+        <button class="mini ghost js-up" type="button">上傳圖片</button>
+      </div>
+    </div>`;
+  }).join("") || `<div class="picked">還沒有角色卡</div>`;
+  chars.querySelectorAll(".board-card").forEach(row => {
+    const card = draft.characters.find(c => c.id === row.getAttribute("data-id"));
+    if (!card) return;
+    row.querySelector(".js-x").onclick = () => removeCard("characters", card.id, "characterIds");
+    const voice = row.querySelector(".js-voice");
+    voice.onchange = () => { card.voiceRef = voice.value; scheduleSave(); };
+    const wear = row.querySelector(".js-wear");
+    wear.onchange = () => { card.theme = wear.value; scheduleSave(); };
+    row.querySelector(".js-gen").onclick = () => generateCard(card.id);
+    row.querySelector(".js-up").onclick = () => uploadCardImage(card.id);
+    const shot = row.querySelector("img.card-shot");
+    if (shot) shot.onclick = () => openLightbox(shot.src);
+  });
+  const locs = $("edLocs");
+  locs.innerHTML = (draft.locations || []).map(c => {
+    const src = cardImageUrl(c);
+    const busy = !!CARD_JOBS[c.id];
+    return `
+    <div class="board-card loc" data-id="${esc(c.id)}">
+      <button class="mini js-x" type="button">✕</button>
+      ${src ? `<img class="card-shot" src="${esc(src)}" alt="">` : ""}
+      <b>${esc(c.name || "未命名場地")}</b>
+      <label>項目</label>
+      <select class="js-scene">${sceneOptions(c.scene || "")}</select>
+      <label>補充描述</label>
+      <textarea class="js-prompt">${esc(c.prompt || "")}</textarea>
+      <div class="card-actions">
+        <button class="mini js-gen" type="button" ${busy ? "disabled" : ""}>${busy ? "生成中…" : (c.image ? "再次生成" : "生成")}</button>
+        <button class="mini ghost js-up" type="button">上傳圖片</button>
+      </div>
+    </div>`;
+  }).join("") || `<div class="picked">還沒有場地卡</div>`;
+  locs.querySelectorAll(".board-card").forEach(row => {
+    const card = draft.locations.find(c => c.id === row.getAttribute("data-id"));
+    if (!card) return;
+    row.querySelector(".js-x").onclick = () => removeCard("locations", card.id, "locationIds");
+    const scene = row.querySelector(".js-scene");
+    scene.onchange = () => { card.scene = scene.value; scheduleSave(); };
+    const prompt = row.querySelector(".js-prompt");
+    prompt.oninput = () => { card.prompt = prompt.value; scheduleSave(); };
+    row.querySelector(".js-gen").onclick = () => generateCard(card.id);
+    row.querySelector(".js-up").onclick = () => uploadCardImage(card.id);
+    const shot = row.querySelector("img.card-shot");
+    if (shot) shot.onclick = () => openLightbox(shot.src);
+  });
+  const motions = $("edMotions");
+  motions.innerHTML = (draft.motions || []).map(m => `
+    <div class="board-card" data-id="${esc(m.id)}">
+      <button class="mini js-x" type="button">✕</button>
+      <video class="card-shot" src="${esc(motionUrl(m))}" controls muted playsinline></video>
+      <label>名稱</label>
+      <input class="js-name" type="text" value="${esc(m.name || "")}">
+    </div>`).join("") || `<div class="picked">還沒有參考動畫</div>`;
+  motions.querySelectorAll(".board-card").forEach(row => {
+    const motion = (draft.motions || []).find(m => m.id === row.getAttribute("data-id"));
+    if (!motion) return;
+    row.querySelector(".js-x").onclick = () => deleteMotion(motion.id);
+    const name = row.querySelector(".js-name");
+    name.oninput = () => { motion.name = name.value; scheduleSave(); };
+  });
+  const segs = $("edSegs");
+  segs.innerHTML = (draft.segments || []).map(s => {
+    const mot = (draft.motions || []).find(m => m.id === s.motionId) || videoRefOf(s.motionId);
+    const motLabel = mot ? (mot.name || mot.id) : "";
+    const motHow = s.motionMode === "audio" ? "複製音軌" : (mot ? "只借動作" : "");
+    const med = segMedia(s);
+    const busy = !!SEG_JOBS[s.id];
+    const shot = med.video
+      ? `<video class="seg-shot" src="${esc(med.video)}" controls muted playsinline></video>`
+      : (med.image ? `<img class="seg-shot" src="${esc(med.image)}" alt="">` : "");
+    return `
+    <div class="seg-chip" data-id="${esc(s.id)}">
+      <div class="phead"><b>段落</b><button class="mini js-del" type="button">✕</button></div>
+      ${shot}
+      <input class="js-name" type="text" value="${esc(s.name || "")}">
+      <div class="meta">${esc(s.duration || 8)}s　${esc(MODE_LABEL[s.clipMode] || "R2V")}${motLabel ? "　參考 " + esc(motLabel) + (motHow ? "／" + motHow : "") : ""}</div>
+      <button class="mini js-make" type="button" ${busy ? "disabled" : ""}>${busy ? "生成中…" : "生成動畫"}</button>
+    </div>`;
+  }).join("") || `<div class="picked">還沒有段落</div>`;
+  segs.querySelectorAll(".seg-chip").forEach(chip => {
+    const seg = draft.segments.find(s => s.id === chip.getAttribute("data-id"));
+    if (!seg) return;
+    const name = chip.querySelector(".js-name");
+    name.onclick = (e) => e.stopPropagation();
+    name.onchange = () => {
+      seg.name = name.value.trim() || seg.name || nextSegName();
+      name.value = seg.name;
+      scheduleSave();
+    };
+    const video = chip.querySelector("video");
+    if (video) video.onclick = (e) => e.stopPropagation();
+    const img = chip.querySelector("img.seg-shot");
+    if (img) img.onclick = (e) => { e.stopPropagation(); openLightbox(img.src); };
+    chip.querySelector(".js-del").onclick = (e) => {
+      e.stopPropagation();
+      if (!confirm(`刪除段落「${seg.name || ""}」？`)) return;
+      draft.segments = draft.segments.filter(s => s.id !== seg.id);
+      forgetJoined();
+      renderEditor();
+      scheduleSave();
+    };
+    chip.querySelector(".js-make").onclick = (e) => {
+      e.stopPropagation();
+      generateSegment(seg.id);
+    };
+    chip.onclick = () => openSeg(seg.id);
+  });
+  const pack = $("edPack");
+  if (pack) {
+    pack.innerHTML = draft.joined_url
+      ? `<div class="hint">合併後的整支</div><video class="seq-joined" src="${esc(draft.joined_url)}" controls playsinline></video>`
+      : "";
+  }
+}
+function forgetJoined() {
+  if (!draft) return;
+  draft.joined = "";
+  draft.joined_url = "";
+}
+function removeCard(listKey, id, segKey) {
+  draft[listKey] = (draft[listKey] || []).filter(c => c.id !== id);
+  (draft.segments || []).forEach(s => {
+    s[segKey] = (s[segKey] || []).filter(x => x !== id);
+  });
+  renderEditor();
+  scheduleSave();
+}
+function matchVoice(gender, title, label, autoStyle) {
+  const refs = voiceRefs(gender);
+  const used = (draft.characters || []).map(c => c.voiceRef).filter(Boolean);
+  const nm = label || title;
+  const named = refs.find(r => r.label === nm || r.id === nm)
+    || refs.find(r => r.label && r.label.length >= 2 && (nm.includes(r.label) || String(title).includes(r.label)));
+  return named
+    || refs.find(r => r.style === autoStyle && !used.includes(r.id))
+    || refs.find(r => !used.includes(r.id))
+    || refs[0]
+    || null;
+}
+function edLoadChars(gender, q, series, sel) {
+  const limit = series ? 400 : 200;
+  return fetch(`/api/characters?gender=${encodeURIComponent(gender)}&q=${encodeURIComponent(q || "")}&series=${encodeURIComponent(series || "")}&limit=${limit}`)
+    .then(r => r.json())
+    .then(data => {
+      const groups = new Map();
+      (data.items || []).forEach(c => {
+        const s = c.series || "其他";
+        if (!groups.has(s)) groups.set(s, []);
+        groups.get(s).push(c);
+      });
+      const parts = [];
+      groups.forEach((arr, s) => {
+        parts.push(`<optgroup label="${esc(s)}（${arr.length}）">`);
+        arr.forEach(c => {
+          const label = (c.zh ? c.zh + "  ·  " : "") + c.title;
+          parts.push(`<option value="${esc(c.title)}" data-voice="${esc(c.voice || "")}">${esc(label)}</option>`);
+        });
+        parts.push(`</optgroup>`);
+      });
+      sel.innerHTML = parts.join("") || `<option value="">（沒有角色）</option>`;
+      if (sel.options.length) sel.selectedIndex = 0;
+    });
+}
+function openCharPicker() {
+  return new Promise((resolve) => {
+    const box = document.createElement("div");
+    box.className = "modal";
+    box.innerHTML = `<div class="modal-box" style="width:min(520px,94vw)">
+      <div class="modal-head"><b>選擇角色卡</b>
+        <button class="ghost mini" type="button" id="pickClose">關閉</button></div>
+      <label>性別</label>
+      <select id="pickGender"><option value="female">女</option><option value="male">男</option></select>
+      <label>作品</label>
+      <select id="pickSeries"></select>
+      <input type="text" id="pickQ" placeholder="搜尋中文名、標籤或作品…">
+      <select id="pickList" class="char-list" size="8"></select>
+      <div class="modal-actions"><button type="button" id="pickOk">加入這張</button></div>
+    </div>`;
+    document.body.appendChild(box);
+    const done = (v) => { box.remove(); resolve(v); };
+    const fillSeries = () => {
+      const g = $("pickGender").value;
+      const rows = g === "male" ? (OPT.series_male || []) : (OPT.series_female || []);
+      $("pickSeries").innerHTML = [`<option value="">全部作品</option>`].concat(
+        rows.map(s => `<option value="${esc(s.label)}">${esc(s.label)}（${s.count}）</option>`)
+      ).join("");
+    };
+    const reload = () => edLoadChars($("pickGender").value, $("pickQ").value, $("pickSeries").value, $("pickList"));
+    fillSeries();
+    reload();
+    $("pickGender").onchange = () => { fillSeries(); reload(); };
+    $("pickSeries").onchange = reload;
+    let t = null;
+    $("pickQ").oninput = () => { clearTimeout(t); t = setTimeout(reload, 200); };
+    $("pickClose").onclick = () => done(null);
+    $("pickOk").onclick = () => {
+      const list = $("pickList");
+      const title = list.value;
+      if (!title) { alert("請先選一個角色"); return; }
+      const opt = list.selectedOptions[0];
+      const gender = $("pickGender").value;
+      const label = opt ? opt.text : title;
+      const voice = matchVoice(gender, title, charName({label, title}), opt ? opt.getAttribute("data-voice") : "");
+      done({
+        id: edUid("c"),
+        kind: "catalog",
+        gender,
+        title,
+        label,
+        prompt: "",
+        voiceRef: voice ? voice.id : "",
+        theme: "original",
+      });
+    };
+  });
+}
+function openCustomCard() {
+  return new Promise((resolve) => {
+    const box = document.createElement("div");
+    box.className = "modal";
+    box.innerHTML = `<div class="modal-box" style="width:min(480px,94vw)">
+      <div class="modal-head"><b>自訂角色卡</b>
+        <button class="ghost mini" type="button" id="cusClose">關閉</button></div>
+      <label>名稱</label>
+      <input type="text" id="cusName" placeholder="例如：房東">
+      <label>性別</label>
+      <select id="cusGender"><option value="female">女</option><option value="male">男</option></select>
+      <label>外貌描述</label>
+      <textarea id="cusPrompt" placeholder="英文標籤較穩，例如：1boy, middle-aged, apron, glasses"></textarea>
+      <div class="modal-actions"><button type="button" id="cusOk">加入</button></div>
+    </div>`;
+    document.body.appendChild(box);
+    const done = (v) => { box.remove(); resolve(v); };
+    $("cusClose").onclick = () => done(null);
+    $("cusOk").onclick = () => {
+      const name = $("cusName").value.trim();
+      if (!name) { alert("請填名稱"); return; }
+      const gender = $("cusGender").value;
+      const voice = matchVoice(gender, name, name, "");
+      done({
+        id: edUid("c"),
+        kind: "custom",
+        gender,
+        title: name,
+        label: name,
+        prompt: $("cusPrompt").value.trim(),
+        voiceRef: voice ? voice.id : "",
+        theme: "original",
+      });
+    };
+  });
+}
+function openLocCard() {
+  return new Promise((resolve) => {
+    const box = document.createElement("div");
+    box.className = "modal";
+    box.innerHTML = `<div class="modal-box" style="width:min(480px,94vw)">
+      <div class="modal-head"><b>場地卡</b>
+        <button class="ghost mini" type="button" id="locClose">關閉</button></div>
+      <label>名稱</label>
+      <input type="text" id="locName" placeholder="例如：出租公寓">
+      <label>項目</label>
+      <select id="locScene"></select>
+      <label>補充描述</label>
+      <textarea id="locPrompt" placeholder="可再補光線、陳設、天氣。英文較穩，中文也可以。"></textarea>
+      <div class="modal-actions"><button type="button" id="locOk">加入</button></div>
+    </div>`;
+    document.body.appendChild(box);
+    const done = (v) => { box.remove(); resolve(v); };
+    $("locScene").innerHTML = sceneOptions("");
+    $("locScene").onchange = () => {
+      if ($("locName").value.trim() || !$("locScene").value) return;
+      const opt = $("locScene").selectedOptions[0];
+      if (opt) $("locName").value = opt.text;
+    };
+    $("locClose").onclick = () => done(null);
+    $("locOk").onclick = () => {
+      const scene = $("locScene").value;
+      let name = $("locName").value.trim();
+      if (!name && scene) {
+        const opt = $("locScene").selectedOptions[0];
+        name = opt ? opt.text : scene;
+      }
+      if (!name) { alert("請填場地名稱，或先選一個項目"); return; }
+      done({
+        id: edUid("l"),
+        name,
+        scene,
+        prompt: $("locPrompt").value.trim(),
+      });
+    };
+  });
+}
+async function generateCard(cardId) {
+  if (!draft || !draft.id || CARD_JOBS[cardId]) return;
+  CARD_JOBS[cardId] = true;
+  renderEditor();
+  clearTimeout(saveTimer);
+  try { await saveDraft(); }
+  catch (e) {
+    delete CARD_JOBS[cardId];
+    renderEditor();
+    alert("草稿存不了。請重開 python server.py 後再試。\n" + (e.message || e));
+    return;
+  }
+  const res = await fetch(
+    "/api/drafts/" + encodeURIComponent(draft.id) + "/cards/" + encodeURIComponent(cardId) + "/image",
+    {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        diffusers_model: $("edSdModel").value,
+        nsfw: true,
+        quality: true,
+      }),
+    });
+  if (!res.ok) {
+    delete CARD_JOBS[cardId];
+    renderEditor();
+    alert(await res.text());
+    return;
+  }
+  poll((await res.json()).job_id, {draft:true, card:cardId});
+}
+async function uploadCardImage(cardId) {
+  if (!draft || !draft.id) return;
+  const file = await pickFile("image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp");
+  if (!file) return;
+  clearTimeout(saveTimer);
+  try { await saveDraft(); }
+  catch (e) { alert("草稿存不了。請重開 python server.py 後再試。\n" + (e.message || e)); return; }
+  const body = new FormData();
+  body.append("file", file);
+  const res = await fetch(
+    "/api/drafts/" + encodeURIComponent(draft.id) + "/cards/" + encodeURIComponent(cardId) + "/upload",
+    {method:"POST", body});
+  if (!res.ok) { alert(await res.text()); return; }
+  try { await loadDraft(draft.id); }
+  catch (e) { alert(e.message || e); }
+}
+async function uploadMotion() {
+  if (!draft || !draft.id) return;
+  const file = await pickFile("video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov");
+  if (!file) return;
+  clearTimeout(saveTimer);
+  try { await saveDraft(); }
+  catch (e) { alert("草稿存不了。請重開 python server.py 後再試。\n" + (e.message || e)); return; }
+  const body = new FormData();
+  body.append("file", file);
+  const res = await fetch("/api/drafts/" + encodeURIComponent(draft.id) + "/motions", {method:"POST", body});
+  if (!res.ok) { alert(await res.text()); return; }
+  try { await loadDraft(draft.id); }
+  catch (e) { alert(e.message || e); }
+}
+async function deleteMotion(motionId) {
+  if (!draft || !draft.id) return;
+  const motion = (draft.motions || []).find(m => m.id === motionId);
+  if (!confirm(`刪除參考動畫「${(motion && motion.name) || ""}」？`)) return;
+  clearTimeout(saveTimer);
+  try { await saveDraft(); } catch (e) {}
+  const res = await fetch(
+    "/api/drafts/" + encodeURIComponent(draft.id) + "/motions/" + encodeURIComponent(motionId),
+    {method:"DELETE"});
+  if (!res.ok) { alert(await res.text()); return; }
+  try { await loadDraft(draft.id); }
+  catch (e) { alert(e.message || e); }
+}
+function acceptCard(card) {
+  if (!card) return false;
+  const g = card.gender === "male" ? "male" : "female";
+  if (countGender(g) >= 50) { alert("女角、男角各最多 50 張"); return false; }
+  if (card.kind === "catalog" && draft.characters.some(c => c.kind === "catalog" && c.title === card.title)) {
+    alert("這張角色卡已經在了");
+    return false;
+  }
+  draft.characters.push(card);
+  renderEditor();
+  scheduleSave();
+  return true;
+}
+async function bindDraftResult(results) {
+  const clips = (((results || {}).sets || [])[0] || {}).clips;
+  if (!clips || !clips.length || !draft) return;
+  draft.pack_id = results.id || draft.pack_id;
+  draft.segments.forEach((s, i) => {
+    if (clips[i] && clips[i].folder) s.folder = clips[i].folder;
+  });
+  await saveDraft();
+  renderEditor();
+  try {
+    const optRes = await fetch("/api/scripts");
+    OPT.stories = (await optRes.json()).stories || OPT.stories;
+    fillStorySelect(OPT.stories);
+  } catch (e) { /* 劇本清單晚點再重整 */ }
+}
+async function openSeg(id) {
+  let seg = (draft.segments || []).find(s => s.id === id);
+  if (!seg) return;
+  const old = document.getElementById("segModal");
+  if (old) old.remove();
+  let info = null;
+  if (seg.folder) {
+    const cached = (CLIP_INFO[seg.folder] || {}).info;
+    if (cached && (cached.motion_prompt || cached.still_prompt)) info = cached;
+    if (!info) {
+      try {
+        const res = await fetch("/output/" + encodeURIComponent(seg.folder) + "/meta.json?v=" + Date.now());
+        if (res.ok) info = await res.json();
+      } catch (e) {}
+    }
+  }
+  seg = (draft.segments || []).find(s => s.id === id);
+  if (!seg) return;
+  if (info && !info.motion_prompt && !info.still_prompt && !info.i2v_prompt) info = null;
+  const picked = new Set(seg.characterIds || []);
+  const pickedLoc = new Set(seg.locationIds || []);
+  const med = segMedia(seg);
+  const preview = med.video
+    ? `<video src="${esc(med.video)}" controls playsinline></video>`
+    : (med.image ? `<img src="${esc(med.image)}" alt="">` : "");
+  const box = document.createElement("div");
+  box.className = "modal";
+  box.id = "segModal";
+  box.innerHTML = `<div class="modal-box">
+    <div class="modal-head"><b>段落</b>
+      <button class="ghost mini" type="button" id="segClose">關閉</button></div>
+    ${preview}
+    <label>名稱</label>
+    <input type="text" id="segName" value="${esc(seg.name || "")}">
+    <label>秒數（4–12）</label>
+    <input type="number" id="segDur" min="4" max="12" value="${esc(seg.duration || 8)}">
+    <div class="phead" style="margin-top:10px"><b>這一鏡的角色卡</b>
+      <span>
+        <button type="button" class="mini" id="segAddChar">＋ 角色庫</button>
+        <button type="button" class="mini" id="segAddCustom">＋ 自訂</button>
+      </span>
+    </div>
+    <p class="hint">由左到右，勾到的第一張女角是這一鏡主角，第一張男角出鏡。沒勾男角就是單人。</p>
+    <div class="chip-pick" id="segChars"></div>
+    <div class="phead" style="margin-top:10px"><b>這一鏡的場地卡</b>
+      <button type="button" class="mini" id="segAddLoc">＋ 場地</button>
+    </div>
+    <div class="chip-pick" id="segLocs"></div>
+    <label>劇情</label>
+    <textarea id="segPlot">${esc(seg.plot || "")}</textarea>
+    <label>對白</label>
+    <textarea id="segDialogue">${esc(seg.dialogue || "")}</textarea>
+    <label>畫面標籤（可空，英文）</label>
+    <input type="text" id="segTags" value="${esc(seg.tags || "")}">
+    <label>R2V 參考動畫</label>
+    <select id="segRef">${motionOptions(seg.motionId || "")}</select>
+    <video id="segRefView" controls muted playsinline style="display:none;width:100%;max-height:180px;background:#000;border-radius:8px"></video>
+    <label>參考方式</label>
+    <select id="segMotionMode">
+      <option value="motion">只參考動作</option>
+      <option value="audio">參考動作，音軌完全複製（長度跟參考片）</option>
+    </select>
+    <p class="hint">只在 R2V 套用。複製音軌時，生成長度改成參考片的秒數（模型最長 15 秒），做好後用參考片的音軌換掉生成的聲音。</p>
+    <label>產片方式</label>
+    <select id="segMode">
+      <option value="r2v">R2V</option>
+      <option value="i2v">I2V</option>
+      <option value="i2v_clone">I2V 聲線克隆</option>
+    </select>
+    ${info ? `<label>女角色 prompt</label>
+      <textarea id="segStill">${esc(info.still_prompt || "")}</textarea>
+      <label>男角色 prompt</label>
+      <textarea id="segPartner">${esc(info.partner_prompt || "")}</textarea>
+      <label>場景 prompt</label>
+      <textarea id="segScene">${esc(info.scene_prompt || "")}</textarea>
+      <label>R2V 鏡頭稿</label>
+      <textarea id="segMotion" style="min-height:120px">${esc(info.motion_prompt || "")}</textarea>
+      <label>I2V 鏡頭稿</label>
+      <textarea id="segI2v" style="min-height:120px">${esc(info.i2v_prompt || "")}</textarea>
+      <p class="hint">生成動畫會依上面的劇情、對白，以及勾選的角色卡和場地卡重寫鏡頭稿。下面的稿是上次留下的，按重作才直接用稿。</p>
+      <div class="modal-actions">
+        <button type="button" id="segRedoChar">重出女圖</button>
+        <button type="button" id="segRedoPartner">重出男圖</button>
+        <button type="button" id="segRedoScene">重出場景</button>
+        <button type="button" id="segRedoVideo">重作動畫</button>
+      </div>` : `<p class="hint">生成動畫會用這一鏡的劇情、對白，以及勾選的角色卡和場地卡。卡上有圖就直接用。</p>`}
+    <div class="modal-actions">
+      <button type="button" id="segMake" class="pink">生成動畫</button>
+      <button type="button" id="segSave">儲存段落</button>
+    </div>
+  </div>`;
+  document.body.appendChild(box);
+  $("segMode").value = seg.clipMode || "r2v";
+  $("segMotionMode").value = seg.motionMode === "audio" ? "audio" : "motion";
+  const paintRef = () => {
+    const view = $("segRefView");
+    const ref = videoRefOf($("segRef").value);
+    const uploaded = (draft.motions || []).find(m => m.id === $("segRef").value);
+    const src = ref
+      ? `/api/motion-clips/${encodeURIComponent(ref.id)}`
+      : (uploaded ? motionUrl(uploaded) : "");
+    if (!src) { view.style.display = "none"; view.removeAttribute("src"); return; }
+    view.style.display = "block";
+    view.src = src;
+  };
+  $("segRef").onchange = paintRef;
+  paintRef();
+  const paintPicks = () => {
+    $("segChars").innerHTML = (draft.characters || []).map(c =>
+      `<button type="button" data-id="${esc(c.id)}" class="${picked.has(c.id) ? "on" : ""}">${esc(cardLabel(c))}</button>`
+    ).join("") || `<span class="hint">尚未建立角色卡</span>`;
+    $("segLocs").innerHTML = (draft.locations || []).map(c =>
+      `<button type="button" data-id="${esc(c.id)}" class="${pickedLoc.has(c.id) ? "on" : ""}">${esc(c.name || "場地")}</button>`
+    ).join("") || `<span class="hint">尚未建立場地卡</span>`;
+    $("segChars").querySelectorAll("button").forEach(b => {
+      b.onclick = () => {
+        const cid = b.getAttribute("data-id");
+        if (picked.has(cid)) picked.delete(cid); else picked.add(cid);
+        b.classList.toggle("on", picked.has(cid));
+      };
+    });
+    $("segLocs").querySelectorAll("button").forEach(b => {
+      b.onclick = () => {
+        const lid = b.getAttribute("data-id");
+        if (pickedLoc.has(lid)) pickedLoc.delete(lid); else pickedLoc.add(lid);
+        b.classList.toggle("on", pickedLoc.has(lid));
+      };
+    });
+  };
+  paintPicks();
+  const close = () => box.remove();
+  $("segClose").onclick = close;
+  $("segAddChar").onclick = async () => {
+    const card = await openCharPicker();
+    if (acceptCard(card)) { picked.add(card.id); paintPicks(); }
+  };
+  $("segAddCustom").onclick = async () => {
+    const card = await openCustomCard();
+    if (acceptCard(card)) { picked.add(card.id); paintPicks(); }
+  };
+  $("segAddLoc").onclick = async () => {
+    const card = await openLocCard();
+    if (!card) return;
+    draft.locations.push(card);
+    pickedLoc.add(card.id);
+    renderEditor();
+    scheduleSave();
+    paintPicks();
+  };
+  const commit = () => {
+    seg.name = $("segName").value.trim() || seg.name || nextSegName();
+    let dur = parseInt($("segDur").value, 10);
+    if (!dur || dur < 4) dur = 4;
+    if (dur > 12) dur = 12;
+    seg.duration = dur;
+    seg.plot = $("segPlot").value;
+    seg.dialogue = $("segDialogue").value;
+    seg.tags = $("segTags").value;
+    seg.clipMode = $("segMode").value || "r2v";
+    seg.motionId = ($("segRef") && $("segRef").value) || "";
+    seg.motionMode = ($("segMotionMode") && $("segMotionMode").value) === "audio" ? "audio" : "motion";
+    seg.characterIds = draft.characters.map(c => c.id).filter(cid => picked.has(cid));
+    seg.locationIds = draft.locations.map(c => c.id).filter(lid => pickedLoc.has(lid));
+    renderEditor();
+    scheduleSave();
+  };
+  $("segSave").onclick = () => { commit(); close(); };
+  $("segMake").onclick = () => { commit(); close(); generateSegment(seg.id); };
+  const redo = async (which) => {
+    if (!seg.folder) return;
+    commit();
+    const res = await fetch(`/api/clips/${encodeURIComponent(seg.folder)}/regenerate`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        still_prompt: $("segStill").value,
+        partner_prompt: $("segPartner").value,
+        scene_prompt: $("segScene").value,
+        motion_prompt: $("segMotion").value,
+        i2v_prompt: $("segI2v").value,
+        redo: which,
+        duration: seg.duration,
+        ...editorAnimateBody($("segMode").value, seg),
+        diffusers_model: (info && info.diffusers_model) || $("edSdModel").value,
+      }),
+    });
+    if (!res.ok) { alert(await res.text()); return; }
+    close();
+    poll((await res.json()).job_id, {clip: seg.folder, draft:true});
+  };
+  if (info) {
+    $("segRedoChar").onclick = () => redo("character");
+    $("segRedoPartner").onclick = () => redo("partner");
+    $("segRedoScene").onclick = () => redo("scene");
+    $("segRedoVideo").onclick = () => redo("video");
+  }
+}
+async function initEditor() {
+  draft = blankDraft();
+  $("tabStudio").onclick = () => showTab("studio");
+  $("tabEdit").onclick = () => showTab("edit");
+  $("edTheme").oninput = () => { draft.theme = $("edTheme").value; scheduleSave(); };
+  $("edTheme").onchange = () => { draft.theme = $("edTheme").value; saveDraft().then(refreshDraftList).catch(() => {}); };
+  $("edNew").onclick = async () => {
+    clearTimeout(saveTimer);
+    try { await saveDraft(); } catch (e) {}
+    draft = blankDraft();
+    $("edTheme").value = "";
+    localStorage.setItem("mdg.draft", draft.id);
+    renderEditor();
+    refreshDraftList().catch(() => {});
+  };
+  $("edAddChar").onclick = async () => { acceptCard(await openCharPicker()); };
+  $("edAddCustom").onclick = async () => { acceptCard(await openCustomCard()); };
+  $("edAddMotion").onclick = () => uploadMotion();
+  $("edAddLoc").onclick = async () => {
+    const card = await openLocCard();
+    if (!card) return;
+    draft.locations.push(card);
+    renderEditor();
+    scheduleSave();
+  };
+  $("edAddSeg").onclick = () => {
+    draft.segments.push({
+      id: edUid("s"),
+      name: nextSegName(),
+      characterIds: (() => {
+        const lead = draft.characters.find(c => (c.gender || "female") !== "male");
+        return lead ? [lead.id] : [];
+      })(),
+      locationIds: [],
+      duration: 8,
+      plot: "",
+      dialogue: "",
+      tags: "",
+      clipMode: "r2v",
+      motionId: "",
+      motionMode: "motion",
+      folder: "",
+    });
+    forgetJoined();
+    renderEditor();
+    scheduleSave();
+  };
+  $("edJoin").onclick = () => concatSegments();
+  try {
+    await refreshDraftList();
+  } catch (e) {
+    $("edLog").textContent = "草稿接口還沒開。請重開 python server.py 後再整理頁。";
+    renderEditor();
+    return;
+  }
+  const saved = localStorage.getItem("mdg.draft") || "";
+  const ids = themeRows.map(d => d.id);
+  const pick = ids.includes(saved) ? saved : (ids[0] || "");
+  if (pick) {
+    try { await loadDraft(pick); return; } catch (e) {}
+  }
+  renderEditor();
+}
+
+async function generateSegment(segId) {
+  if (!draft || !draft.id || SEG_JOBS[segId]) return;
+  const seg = (draft.segments || []).find(s => s.id === segId);
+  if (!seg) return;
+  draft.theme = ($("edTheme") && $("edTheme").value || draft.theme || "").trim();
+  if ($("edTheme")) $("edTheme").value = draft.theme;
+  if (!draft.theme) { alert("請先填主題"); return; }
+  const ids = new Set(seg.characterIds || []);
+  const hasGirl = (draft.characters || []).some(c => ids.has(c.id) && (c.gender || "female") !== "male");
+  if (!hasGirl) { alert("這個段落請至少勾一張女角色卡"); return; }
+  SEG_JOBS[segId] = true;
+  forgetJoined();
+  renderEditor();
+  clearTimeout(saveTimer);
+  try { await saveDraft(); }
+  catch (e) {
+    delete SEG_JOBS[segId];
+    renderEditor();
+    alert("草稿存不了。請重開 python server.py 後再試。\n" + (e.message || e));
+    return;
+  }
+  const res = await fetch(
+    "/api/drafts/" + encodeURIComponent(draft.id) + "/segments/" + encodeURIComponent(segId) + "/animate",
+    {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        diffusers_model: $("edSdModel").value,
+        ollama_model: $("edOllama").value,
+        language: ($("edVoiceLang") && $("edVoiceLang").value) || "zh",
+      }),
+    });
+  if (!res.ok) {
+    delete SEG_JOBS[segId];
+    renderEditor();
+    alert(await res.text());
+    return;
+  }
+  poll((await res.json()).job_id, {draft:true, segment:segId});
+}
+
+async function concatSegments() {
+  if (!draft || !draft.id) return;
+  if ((draft.segments || []).length < 2) {
+    alert("至少要兩個段落才能合併");
+    return;
+  }
+  clearTimeout(saveTimer);
+  try { await saveDraft(); }
+  catch (e) {
+    alert("草稿存不了。請重開 python server.py 後再試。\n" + (e.message || e));
+    return;
+  }
+  const res = await fetch("/api/drafts/" + encodeURIComponent(draft.id) + "/concat", {method:"POST"});
+  if (!res.ok) { alert(await res.text()); return; }
+  poll((await res.json()).job_id, {draft:true, join:true});
+}
+
+function paintProg(wrap, fill, label, job) {
+  if (!wrap || !fill || !label) return;
+  if (!job || job.status !== "running") {
+    wrap.classList.remove("show");
+    fill.classList.remove("indet");
+    fill.style.width = job && job.status === "done" ? "100%" : "0";
+    return;
+  }
+  wrap.classList.add("show");
+  label.textContent = job.message || "處理中…";
+  if (job.progress == null) {
+    fill.classList.add("indet");
+    fill.style.width = "35%";
+  } else {
+    fill.classList.remove("indet");
+    fill.style.width = Math.max(0, Math.min(100, job.progress)) + "%";
+  }
+}
+function setProg(job) {
+  paintProg($("sideProg"), $("sideProgFill"), $("sideProgLabel"), job);
+  paintProg($("edProg"), $("edProgFill"), $("edProgLabel"), job);
+}
+function writeLog(text) {
+  [$("log"), $("edLog")].forEach(el => {
+    if (!el) return;
+    el.textContent = text;
+    el.scrollTop = el.scrollHeight;
+  });
+}
+
+function setStudioBusy(busy) {
+  $("storyGo").disabled = busy;
+  $("inventGo").disabled = busy;
+  if ($("edJoin")) $("edJoin").disabled = busy;
+}
+
+function paintStillMask(name) {
+  document.querySelectorAll(`.still-card[data-clip="${CSS.escape(name)}"]`).forEach(card => {
+    const job = CLIP_JOBS[name];
+    card.classList.toggle("busy", !!job);
+    let mask = card.querySelector(".still-mask");
+    if (!job) { if (mask) mask.remove(); return; }
+    if (!mask) {
+      mask = document.createElement("div");
+      mask.className = "still-mask";
+      card.appendChild(mask);
+    }
+    mask.innerHTML = `${esc(job.message || "處理中…")}<div class="sub">${esc(job.status || "")}</div>`;
+  });
+}
+
+function poll(jobId, {clip=null, clips=null, draft=false, card=null, segment=null, join=false} = {}) {
+  ACTIVE_JOBS[jobId] = {clip, clips, draft, card, segment, join};
+  const names = clips || (clip ? [clip] : []);
+  names.forEach(n => {
+    CLIP_JOBS[n] = {jobId, status:"running", message:"佇列中…"};
+    paintStillMask(n);
+  });
+  setStudioBusy(true);
+  if (!pollTimer) pollTimer = setInterval(tickJobs, 800);
+  tickJobs();
+}
+
+async function tickJobs() {
+  const ids = Object.keys(ACTIVE_JOBS);
+  if (!ids.length) {
+    clearInterval(pollTimer); pollTimer = null;
+    setStudioBusy(false); setProg(null);
+    return;
+  }
+  let anyRunning = false;
+  for (const id of ids) {
+    const meta = ACTIVE_JOBS[id];
+    try {
+      const job = await (await fetch(`/api/jobs/${id}`)).json();
+      setProg(job);
+      writeLog((job.log || []).join("\n") || job.message || "");
+      const names = meta.clips || (meta.clip ? [meta.clip] : []);
+      names.forEach(n => {
+        if (job.status === "running") {
+          CLIP_JOBS[n] = {jobId:id, status:"running", message: job.message || "處理中…"};
+        } else {
+          delete CLIP_JOBS[n];
+        }
+        paintStillMask(n);
+      });
+      if (job.status === "running") { anyRunning = true; continue; }
+      if (meta.card) delete CARD_JOBS[meta.card];
+      if (meta.segment) delete SEG_JOBS[meta.segment];
+      delete ACTIVE_JOBS[id];
+      if (job.status === "error") alert(job.error || job.message || "失敗");
+      await refreshGallery();
+      if ((meta.segment || meta.join) && draft && draft.id) {
+        try { await loadDraft(draft.id); } catch (e) { renderEditor(); }
+      } else if (meta.draft && job.status === "done" && meta.card && draft && draft.id) {
+        try { await loadDraft(draft.id); } catch (e) { renderEditor(); }
+      } else if (meta.draft && job.status === "done" && job.results) {
+        await bindDraftResult(job.results);
+      } else if (meta.card) {
+        renderEditor();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  if (!anyRunning && !Object.keys(ACTIVE_JOBS).length) {
+    setStudioBusy(false);
+    setProg(null);
+  }
+}
+
+$("inventGo").onclick = async () => {
+  if (!leadFemale()) { alert("請先加入至少一名女角色"); return; }
+  const btn = $("inventGo");
+  btn.disabled = true;
+  try {
+    const res = await fetch("/api/story/invent", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        female: leadFemale(),
+        male: leadMale(),
+        premise: $("premise").value,
+        nsfw: $("nsfw").checked,
+        seed: $("seed").value === "" ? null : parseInt($("seed").value, 10),
+        ollama_model: $("ollamaModel").value,
+      }),
+    });
+    if (!res.ok) { alert(await res.text()); return; }
+    const data = await res.json();
+    const optRes = await fetch("/api/scripts");
+    OPT.stories = (await optRes.json()).stories || [];
+    fillStorySelect(OPT.stories);
+    if (data.story && data.story.id) {
+      $("storyPick").value = data.story.id;
+      renderFlow();
+    }
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+$("storyGo").onclick = async () => {
+  if (!leadFemale()) { alert("請先加入至少一名女角色"); return; }
+  const storyId = $("storyPick").value;
+  if (!storyId) { alert("請先選短劇，或用 Ollama 生成"); return; }
+  const res = await fetch("/api/story/stills", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      ...commonFlags(),
+      story_id: storyId,
+      character: leadFemale(),
+      theme: $("theme").value === "original" ? "" : $("theme").value,
+      male_theme: $("maleTheme").value === "original" ? "" : $("maleTheme").value,
+      male: leadMale(),
+      females: castPayload(femaleSlots),
+      males: castPayload(maleSlots),
+      extra: $("extra").value,
+      seed: $("seed").value === "" ? null : parseInt($("seed").value, 10),
+      story_mode: "r2v",
+    }),
+  });
+  if (!res.ok) { alert(await res.text()); return; }
+  poll((await res.json()).job_id);
+};
+
+async function refreshGallery() {
+  const res = await fetch("/api/stories");
+  const packs = ((await res.json()).stories || []).filter(p => (p.story_mode || "r2v") !== "i2v");
+  const el = $("storyList");
+  if (!packs.length) { el.textContent = "（尚無短劇，左側選角色與劇本後產參考圖）"; return; }
+  el.innerHTML = packs.map(pack => {
+    const sets = pack.sets || [];
+    const setsHtml = sets.map(s => {
+      const clips = s.clips || [];
+      const cards = clips.map((c) => {
+        const info = c.info || {};
+        CLIP_INFO[c.folder] = {info, pack: pack.id};
+        const step = c.step || info.story_step || "";
+        const title = c.title || c.action || "";
+        const dur = c.duration || info.main_duration || info.duration || "";
+        const nsfwMark = (c.nsfw === true || info.story_nsfw === true) ? "　NSFW" : "";
+        const clipName = c.motion_clip || info.motion_clip || "";
+        const clipMark = clipName ? `　動作參考 ${clipName}` : "";
+        const preview = c.has_video && c.video
+          ? `<video src="${c.video}" controls loop muted playsinline></video>`
+          : ((c.character || c.partner || c.scene)
+            ? `<div class="r2v-refs">${c.character ? `<div class="r2v-slot"><img src="${c.character}" alt="女"><button class="mini js-ref" type="button" data-ref="character">重出女圖</button></div>` : ""}${c.partner ? `<div class="r2v-slot"><img src="${c.partner}" alt="男"><button class="mini js-ref" type="button" data-ref="partner">重出男圖</button></div>` : ""}${c.scene ? `<div class="r2v-slot"><img src="${c.scene}" alt="場景"><button class="mini js-ref" type="button" data-ref="scene">重出場景</button></div>` : ""}</div>`
+            : "");
+        return `<div class="still-card" data-clip="${esc(c.folder)}" data-pack="${esc(pack.id)}">
+          ${preview}
+          <div class="meta">${step ? step + ". " : ""}${esc(title)}${dur ? "　" + dur + "s" : ""}${nsfwMark}${clipMark}</div>
+          <div class="btns">
+            ${c.has_video ? "" : `<button class="mini js-anim" type="button">▶ 產生動畫</button>`}
+            <button class="mini js-open" type="button">✎</button>
+            <button class="mini js-delstep" type="button">🗑️</button>
+          </div>
+        </div>`;
+      }).join("");
+      const flow = clips.map(c => {
+        const t = c.title || c.action || "";
+        const d = c.duration || "";
+        return t + (d ? " " + d + "s" : "");
+      }).filter(Boolean).join(" → ");
+      const concatBtn = s.ready
+        ? `<button class="mini js-concat" type="button">將本篇合成一支</button>`
+        : `<button class="mini js-animset" type="button">本篇全部產動畫</button>`;
+      const joined = s.joined_url
+        ? `<video class="seq-joined" src="${s.joined_url}" controls loop playsinline></video>` : "";
+      return `<div class="seq-set" data-pack="${esc(pack.id)}" data-set="${s.index}">
+        <div class="phead"><b>${esc(pack.story_title || "短劇")}</b>　${concatBtn}</div>
+        <div class="seq-flow">${esc(flow)}</div>
+        <div class="stills">${cards}</div>
+        ${joined}
+      </div>`;
+    }).join("");
+    return `<div class="seq-pack" data-pack="${esc(pack.id)}">
+      <h3 style="margin:0 0 6px;font-size:14px;display:flex;justify-content:space-between;gap:8px">
+        <span>${esc(pack.story_title || pack.id)}　${esc(pack.character || "")}${pack.theme ? "　女:" + esc((OPT.themes || {})[pack.theme] || pack.theme) : ""}${pack.male_theme ? "　男:" + esc((OPT.male_themes || {})[pack.male_theme] || pack.male_theme) : ""}</span>
+        <span>
+          <button class="mini js-copy" type="button">換成目前女角色</button>
+          <button class="mini js-delpack" type="button">🗑️</button>
+        </span>
+      </h3>
+      ${setsHtml}
+    </div>`;
+  }).join("");
+  el.querySelectorAll(".still-card").forEach(card => {
+    const name = card.getAttribute("data-clip");
+    const packId = card.getAttribute("data-pack");
+    card.querySelectorAll(".js-anim").forEach(b => { b.onclick = () => animateOne(name); });
+    card.querySelectorAll(".js-open").forEach(b => { b.onclick = () => openModal(name); });
+    card.querySelectorAll(".js-ref").forEach(b => {
+      b.onclick = (e) => { e.stopPropagation(); regenStoryRef(name, b.getAttribute("data-ref")); };
+    });
+    card.querySelectorAll(".js-delstep").forEach(b => {
+      b.onclick = () => delStoryClip(packId, name);
+    });
+    card.querySelectorAll("img").forEach(img => {
+      img.onclick = () => openLightbox(img.src);
+    });
+    paintStillMask(name);
+  });
+  el.querySelectorAll(".seq-set").forEach(box => {
+    const packId = box.getAttribute("data-pack");
+    const setIndex = parseInt(box.getAttribute("data-set"), 10);
+    const folders = [...box.querySelectorAll(".still-card")].map(c => c.getAttribute("data-clip")).filter(Boolean);
+    box.querySelectorAll(".js-animset").forEach(b => {
+      b.onclick = () => animateSet(packId, setIndex, folders);
+    });
+    box.querySelectorAll(".js-concat").forEach(b => {
+      b.onclick = () => concatSet(packId, setIndex);
+    });
+  });
+  el.querySelectorAll(".js-delpack").forEach(b => {
+    b.onclick = () => delStory(b.closest(".seq-pack").getAttribute("data-pack"));
+  });
+  el.querySelectorAll(".js-copy").forEach(b => {
+    b.onclick = () => copyStory(b.closest(".seq-pack").getAttribute("data-pack"));
+  });
+}
+
+function animateBody(clipMode) {
+  return {
+    image_backend: "diffusers",
+    diffusers_model: $("sdModel").value,
+    video_model: "minimax_h3",
+    turbo_steps: parseInt($("turbo").value, 10),
+    voice: $("voiceOn").checked,
+    language: $("voiceLang").value || "zh",
+    voice_style: speakerStyle(),
+    voice_ref: speakerVoiceRef(),
+    ollama_model: $("ollamaModel").value,
+    story_link: "auto",
+    clip_mode: clipMode || "r2v",
+  };
+}
+
+function clipModeOf(info) {
+  const m = String((info && info.clip_mode) || "r2v").toLowerCase();
+  if (m === "i2v_clone" || m === "3" || m === "clone") return "i2v_clone";
+  if ((m === "i2v" || m === "i2v_tail") && info && info.voice_cloned) return "i2v_clone";
+  if (m === "i2v" || m === "i2v_tail" || m === "2") return "i2v";
+  return "r2v";
+}
+
+function pickClipMode(title, note) {
+  return new Promise((resolve) => {
+    const old = document.getElementById("modeModal");
+    if (old) old.remove();
+    const box = document.createElement("div");
+    box.className = "modal";
+    box.id = "modeModal";
+    box.innerHTML = `<div class="modal-box" style="width:min(440px,94vw)">
+      <div class="modal-head"><b>${esc(title)}</b>
+        <button class="ghost mini" type="button" id="modeCancel">取消</button></div>
+      ${note ? `<p class="hint">${esc(note)}</p>` : ""}
+      <div class="mode-pick">
+        <button type="button" data-mode="r2v"><b>R2V</b><span>用角色圖與場景圖，走 R2V 鏡頭稿</span></button>
+        <button type="button" data-mode="i2v"><b>I2V</b><span>從上一段尾幀接續，保留這段自己的聲音</span></button>
+        <button type="button" data-mode="i2v_clone"><b>I2V 聲線克隆</b><span>尾幀接續，對白改用角色參考音疊回</span></button>
+      </div>
+    </div>`;
+    document.body.appendChild(box);
+    const done = (v) => { box.remove(); resolve(v); };
+    box.querySelector("#modeCancel").onclick = () => done(null);
+    box.querySelectorAll("[data-mode]").forEach(b => {
+      b.onclick = () => done(b.getAttribute("data-mode"));
+    });
+  });
+}
+
+async function animateSet(packId, setIndex, folders) {
+  const mode = await pickClipMode(
+    `這 ${folders.length} 段用哪種方式產動畫？`,
+    "第一段沒有上一段尾幀時，I2V 會改走 R2V。");
+  if (!mode) return;
+  const res = await fetch(`/api/stories/${encodeURIComponent(packId)}/animate`, {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ set_index: setIndex, ...animateBody(mode) }),
+  });
+  if (!res.ok) { alert(await res.text()); return; }
+  poll((await res.json()).job_id, {clips: folders});
+}
+
+async function animateOne(name) {
+  const info = (CLIP_INFO[name] || {}).info || {};
+  const step = parseInt(info.story_step || "0", 10);
+  const note = step <= 1 ? "這是第一段，沒有上一段尾幀。選 I2V 會改走 R2V。" : "";
+  const mode = await pickClipMode("這一段用哪種方式產動畫？", note);
+  if (!mode) return;
+  const res = await fetch(`/api/clips/${encodeURIComponent(name)}/regenerate`, {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      redo: "video",
+      still_prompt: info.still_prompt || "",
+      partner_prompt: info.partner_prompt || "",
+      scene_prompt: info.scene_prompt || "",
+      motion_prompt: info.motion_prompt || "",
+      i2v_prompt: info.i2v_prompt || "",
+      duration: info.main_duration || info.duration || null,
+      ...animateBody(mode),
+    }),
+  });
+  if (!res.ok) { alert(await res.text()); return; }
+  poll((await res.json()).job_id, {clip: name});
+}
+
+async function concatSet(packId, setIndex) {
+  const res = await fetch(`/api/stories/${encodeURIComponent(packId)}/concat`, {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ set_index: setIndex }),
+  });
+  if (!res.ok) { alert(await res.text()); return; }
+  poll((await res.json()).job_id);
+}
+
+async function copyStory(packId) {
+  if (!leadFemale()) { alert("請先加入至少一名女角色"); return; }
+  if (!confirm(`沿用這篇片段，換成女角色「${leadFemale()}」？`)) return;
+  const res = await fetch(`/api/stories/${encodeURIComponent(packId)}/copy`, {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ ...commonFlags(), character: leadFemale() }),
+  });
+  if (!res.ok) { alert(await res.text()); return; }
+  poll((await res.json()).job_id);
+}
+
+async function delStoryClip(packId, folder) {
+  if (!confirm(`從短劇刪除這一段？\n${folder}`)) return;
+  const res = await fetch(
+    `/api/stories/${encodeURIComponent(packId)}/clips/${encodeURIComponent(folder)}`,
+    {method:"DELETE"});
+  if (!res.ok) { alert(await res.text()); return; }
+  refreshGallery();
+}
+
+async function delStory(packId) {
+  if (!confirm(`刪除短劇 ${packId}？連同參考圖／動畫都會刪。`)) return;
+  const res = await fetch(`/api/stories/${encodeURIComponent(packId)}`, {method:"DELETE"});
+  if (!res.ok) { alert(await res.text()); return; }
+  refreshGallery();
+}
+
+async function regenStoryRef(name, which) {
+  const pack = CLIP_INFO[name];
+  if (!pack || CLIP_JOBS[name]) return;
+  const info = pack.info || {};
+  const prompt = which === "character" ? (info.still_prompt || "")
+    : which === "partner" ? (info.partner_prompt || "")
+    : (info.scene_prompt || "");
+  if (!prompt.trim() && which !== "partner") {
+    alert("沒有這張參考圖的 prompt");
+    return;
+  }
+  const labels = {character:"女圖", partner:"男圖", scene:"場景"};
+  if (!confirm(`重出${labels[which] || which}？`)) return;
+  const res = await fetch(`/api/clips/${encodeURIComponent(name)}/regenerate`, {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      still_prompt: info.still_prompt || "",
+      partner_prompt: info.partner_prompt || "",
+      scene_prompt: info.scene_prompt || "",
+      motion_prompt: info.motion_prompt || "",
+      redo: which,
+      image_backend: "diffusers",
+      diffusers_model: info.diffusers_model || $("sdModel").value,
+      seed: $("seed").value === "" ? null : parseInt($("seed").value, 10),
+    }),
+  });
+  if (!res.ok) { alert(await res.text()); return; }
+  poll((await res.json()).job_id, {clip:name});
+}
+
+function openLightbox(src) {
+  const box = document.createElement("div");
+  box.className = "lightbox";
+  box.innerHTML = `<img src="${esc(src)}" alt="">`;
+  box.onclick = () => box.remove();
+  document.body.appendChild(box);
+}
+
+function openModal(name) {
+  const info = (CLIP_INFO[name] || {}).info || {};
+  const enc = encodeURIComponent(name);
+  const existing = document.getElementById("editModal");
+  if (existing) existing.remove();
+  const box = document.createElement("div");
+  box.className = "modal";
+  box.id = "editModal";
+  box.innerHTML = `<div class="modal-box">
+    <div class="modal-head"><b>${esc(name)}</b><button class="ghost mini" type="button" id="modalClose">關閉</button></div>
+    <div class="r2v-refs">
+      ${info.character_ref ? `<img src="/output/${enc}/character.png?v=${Date.now()}" alt="女">` : ""}
+      ${info.partner_ref ? `<img src="/output/${enc}/partner.png?v=${Date.now()}" alt="男">` : ""}
+      ${info.scene_ref ? `<img src="/output/${enc}/scene.png?v=${Date.now()}" alt="場景">` : ""}
+    </div>
+    <video src="/output/${enc}/animation.mp4?v=${Date.now()}" controls playsinline></video>
+    <label>女角色 prompt</label>
+    <textarea id="modalStill">${esc(info.still_prompt || "")}</textarea>
+    <label>男角色 prompt</label>
+    <textarea id="modalPartner">${esc(info.partner_prompt || "")}</textarea>
+    <label>場景 prompt</label>
+    <textarea id="modalScene">${esc(info.scene_prompt || "")}</textarea>
+    <label>產片方式</label>
+    <select id="modalClipMode">
+      <option value="r2v">R2V</option>
+      <option value="i2v">I2V</option>
+      <option value="i2v_clone">I2V 聲線克隆</option>
+    </select>
+    <label>R2V 鏡頭稿</label>
+    <textarea id="modalMotion" style="min-height:140px">${esc(info.motion_prompt || "")}</textarea>
+    <label>I2V 鏡頭稿</label>
+    <textarea id="modalI2v" style="min-height:140px">${esc(info.i2v_prompt || "")}</textarea>
+    <p class="hint">R2V 用角色圖與場景圖；I2V 從上一段尾幀接。新的參考圖會同時寫好兩份。舊片段的 I2V 稿若是空的，產片時會依劇情補上。聲線克隆再把對白換成角色參考音。</p>
+    <div class="modal-actions">
+      <button type="button" id="modalRedoChar">重出女圖</button>
+      <button type="button" id="modalRedoPartner">重出男圖</button>
+      <button type="button" id="modalRedoScene">重出場景</button>
+      <button type="button" id="modalRedoVideo" class="pink">重作動畫</button>
+    </div>
+  </div>`;
+  document.body.appendChild(box);
+  $("modalClipMode").value = clipModeOf(info);
+  $("modalClose").onclick = () => box.remove();
+  const send = async (redo) => {
+    const res = await fetch(`/api/clips/${encodeURIComponent(name)}/regenerate`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        still_prompt: $("modalStill").value,
+        partner_prompt: $("modalPartner").value,
+        scene_prompt: $("modalScene").value,
+        motion_prompt: $("modalMotion").value,
+        i2v_prompt: $("modalI2v").value,
+        redo,
+        duration: info.main_duration || info.duration || null,
+        ...animateBody($("modalClipMode").value),
+        diffusers_model: info.diffusers_model || $("sdModel").value,
+      }),
+    });
+    if (!res.ok) { alert(await res.text()); return; }
+    box.remove();
+    poll((await res.json()).job_id, {clip:name});
+  };
+  $("modalRedoChar").onclick = () => send("character");
+  $("modalRedoPartner").onclick = () => send("partner");
+  $("modalRedoScene").onclick = () => send("scene");
+  $("modalRedoVideo").onclick = () => send("video");
+}
+
+boot().catch(err => {
+  $("log").textContent = "載入失敗：" + err;
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+requests>=2.31
+pyyaml>=6.0
+pillow>=10.0
+fastapi>=0.110
+uvicorn>=0.29
+python-multipart>=0.0.9
+# I2V 聲線克隆（可選）：pip install voxcpm soundfile

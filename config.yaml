@@ -1,0 +1,183 @@
+# MicroDramaGenerator：短劇 R2V
+comfyui:
+  url: "http://127.0.0.1:8188"
+  poll_interval: 1.5
+  timeout: 3600
+
+# Danbooru Top 500 角色（data/characters.json，分女／男）
+characters:
+  file: "data/characters.json"
+
+paths:
+  output_dir: "output"
+  workflows_dir: "workflows"
+  cache_dir: "data"
+
+# 短篇雙人段：男方空白時用這張參考圖，不另外生圖
+story:
+  default_male_image: "data/default_male.png"
+  stories_dir: "data/stories"
+
+# 首幀固定走本機 Diffusers（不用 A1111）
+image:
+  backend: "diffusers"
+  width: 1536
+  height: 1536
+  steps: 30
+  cfg: 7.0
+  sampler: "Euler a"
+  quality_prefix: "nsfw,explicit,masterpiece,best quality,newest,absurdres,highres,detailed eyes,beautiful,detailed background,perfect eyes,glossy material render"
+  negative: "3d,lowres,(worst quality, bad quality:1.2),bad anatomy,sketch,jpeg artifacts,signature,watermark,old,oldest,censored,bar_censor,simple background,extra head,conjoined,motion lines,motion line,speed lines,"
+  nsfw: ""
+  more_detail: ""
+  less_detail: ""
+  quality: "nsfw,explicit,masterpiece,best quality,newest,absurdres,highres,detailed eyes,beautiful,detailed background,perfect eyes,glossy material render"
+  character_enhance: ""
+  img2img_strength: 0.58   # 短篇「參考」上一段尾幀／首幀時的重繪強度
+  # Diffusers（Illustrious 系 SDXL）。default 為預設選項。
+  diffusers:
+    default: oneobsession
+    models:
+      rimix:
+        label: riMix Illustrious Anima V2
+        path: "C:/SD/sd.webui/sd.webui/webui/models/Stable-diffusion/riMixIllustriousAnima_riMixV2.safetensors"
+      wai:
+        label: WAI NSFW Illustrious v170
+        path: "C:/SD/sd.webui/sd.webui/webui/models/Stable-diffusion/waiIllustriousSDXL_v170.safetensors"
+      oneobsession:
+        label: One Obsession v24
+        path: "C:/SD/sd.webui/sd.webui/webui/models/Stable-diffusion/oneObsession_v24.safetensors"
+      celestrealAnimeSemi:
+        label: celestrealAnimeSemi v30
+        path: "C:/SD/sd.webui/sd.webui/webui/models/Stable-diffusion/celestrealAnimeSemi_v30.safetensors"
+      ilustrealism:
+        label: ilustrealism v10
+        path: "C:/SD/sd.webui/sd.webui/webui/models/Stable-diffusion/ilustrealism_v10.safetensors"
+      illustriousRealism:
+        label: illustriousRealism v40
+        path: "C:/SD/sd.webui/sd.webui/webui/models/Stable-diffusion/illustriousRealism_ilXL10V40.safetensors"
+    pipeline: "sdxl"
+    vae: ""
+    device: "auto"
+    cpu_offload: false
+    lora: "C:/SD/sd.webui/sd.webui/webui/models/Lora/other/Smooth_Booster_v5.safetensors"
+    lora_scale: 0.3
+  # ComfyUI 文生圖後備（GameSpriteCreator 同一套 dasiwaAnima）
+  comfy:
+    unet: "dasiwaAnima_luminousLabyrinthV1-bf16.safetensors"
+    clip: "qwen_3_06b_base.safetensors"
+    vae: "qwen_image_vae.safetensors"
+    sampler: "er_sde"
+    scheduler: "simple"
+
+# 影片：ComfyUI 圖生影。default 為預設 i2v（MiniMax H3）；介面可改選 LTX 2.3。
+# 短篇：非 NSFW 段落固定 story_sfw；NSFW 段落用 story_nsfw（皆預設 H3；介面可覆寫）。
+video:
+  backend: "comfyui"
+  default: minimax_h3
+  workflow: "video_ltx2_3_i2v.json"
+  checkpoint: "ltx2310eros_v14.safetensors"
+  lora: "ltx-2.3-22b-distilled-lora-384-1.1.safetensors"
+  upscaler: "ltx-2.3-spatial-upscaler-x2-1.1.safetensors"
+  prompt_enhance: false
+  prompt_enhance_lora: "gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors"
+  fps: 24
+  duration_min: 3
+  duration_max: 30
+  duration_default: 8
+  english_motion: true   # 勾選時用 Qwen-VL 看首幀寫 MiniMax H3 I2VA 動作稿
+  climax: false          # 第二段高潮；預設關，需勾選才在動作稿加 [Shot 2]
+  climax_seconds: 4      # 高潮 [Shot 2] 秒數（僅 climax 開啟時）
+  extend_seconds: 6      # 編輯 popup 加長段預設秒數（3–15）；產生後再決定合併或刪除
+  extend_mode: auto      # auto / similar / tweak / rhythm
+  width: 1024
+  height: 1024
+  negative: "worst quality, low quality, blurry, low res, pixelated, grainy, jpeg artifacts, compression artifacts, noisy, out of focus, deformed, mutated, bad anatomy, extra limbs, extra fingers, missing limbs, fused fingers, poorly drawn hands, poorly drawn face, disfigured, ugly, watermark, text, logo, signature, frame drops, flickering, shaky, jitter, stuttering, ghosting, warping, inconsistent motion, choppy movement, child, loli, shota, underage"
+  story_sfw: minimax_h3   # 短篇非 NSFW 段落預設
+  story_nsfw: minimax_h3  # 短篇 NSFW 段落預設
+  models:
+    ltx23:
+      label: LTX 2.3
+    minimax_h3:
+      label: MiniMax H3
+      workflow: "video_minimax_h3_i2v.json"
+      r2v_workflow: "video_minimax_h3_r2v.json"
+      unet: "10Eros_Max_h3_TURBO-hybrid_beta5_int8.safetensors"
+      clip: "qwen3vl_32b_heretic_minimax_h3_nvfp4.safetensors"
+      video_vae: "minimax_h3_video_vae_fp16.safetensors"
+      audio_vae: "minimax_h3_audio_vae_fp32.safetensors"
+      aspect_ratio: "1:1 (Square)"
+      megapixels: 0.7
+      duration_max: 15
+      turbo_steps: 8   # 4 / 8 / 0=關閉（正常 20 step）
+      full_steps: 20   # 關閉 Turbo 時的步數
+      sampler: euler   # Turbo 必須 euler；res_multistep 在 4/8 step 會把音訊踩成雜訊
+      turbo_strength: 0.7
+      turbo_strength_nsfw: 0.5   # 疊 NSFW 效果 LoRA 時再降，避免音訊爆
+      turbo_lora:
+        fl2v:
+          8:
+            lora: "minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors"
+            shift_video: 12
+            shift_audio: 3
+          4:
+            lora: "minimax_h3_fl2v_turbo_4step_v1.2_768p_comfyui_bf16.safetensors"
+            shift_video: 6
+            shift_audio: 3
+        r2v:
+          8:
+            lora: "minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors"
+            shift_video: 6
+            shift_audio: 3
+          4:
+            lora: "minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors"
+            shift_video: 12
+            shift_audio: 3
+      # H3 效果 LoRA（Turbo 之後串接）。when: always / nsfw / bounce / penetration / cumshot
+      effect_loras:
+        - id: vbvr
+          lora: "H3_VBVR_Pro_attn_only.safetensors"
+          strength: 0.7   # prompt 跟隨／時序；作者常用 1.0，疊其他 LoRA 先用 0.7
+          when: always
+        - id: movement
+          lora: "movment_h3_lora_v1_500.safetensors"
+          strength: 0.45
+          when: always
+        - id: nsfw_aio
+          lora: "HMNSFW_AIO_V2.safetensors"
+          strength: 0.4
+          when: nsfw
+        - id: vagina
+          lora: "detailVagina_minimax-h3_epoch20.safetensors"
+          strength: 0.45
+          when: genitals
+        - id: bounce
+          lora: "bounceV03-000084.safetensors"
+          strength: 0.35
+          when: bounce
+        - id: deeper
+          lora: "H3_Deeper.safetensors"
+          strength: 0.45
+          when: penetration
+        - id: cumshot
+          lora: "HMCumshot_V2.safetensors"
+          strength: 0.55
+          when: cumshot
+
+# MiniMax H3 會依動作提示詞裡的台詞出聲（不另跑 TTS）
+voice:
+  enabled: true
+  language: zh          # zh / ja / en
+  style: sweet          # 見 anim_creator/voice.py VOICES；角色會自動分配
+  generate: auto        # auto = 先試 Ollama，失敗用詞庫
+  clone: voxcpm         # i2v 產片時用角色參考音克隆對白，疊回原片音軌；none 關閉
+  voxcpm_model: "openbmb/VoxCPM2"
+
+# 本機 Ollama。model 為預設；介面會查 /api/tags 列出已安裝模型供選。
+ollama:
+  url: "http://127.0.0.1:11434"
+  # model: "hf.co/PantheonUnbound/Satyr-V0.1-4B:Q4_K_M"
+  model: "hf.co/mradermacher/Safeword-Casual-V1-12B-GGUF:Q4_K_M"
+  vision_model: "qwen3-vl:4b-instruct"   # 看首幀寫 LTX 動作稿；角色／台詞仍用上面的 model
+  temperature: 0.9
+  timeout: 180
